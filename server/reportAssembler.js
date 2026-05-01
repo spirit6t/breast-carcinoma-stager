@@ -1,0 +1,110 @@
+import { buildFinalDiagnosisBlock } from './finalDx.js';
+import { renderCapSynopticDCIS } from './cap/excisionDCIS.js';
+import { renderCapSynopticInvasive } from './cap/excisionInvasive.js';
+import { computeIhcBilling } from './billing.js';
+
+function renderClinicalInfo(caseData) {
+  const h = caseData.priorHistory || {};
+  const lines = [];
+  if (h.previousBiopsyResult && h.previousBiopsyResult.trim()) {
+    const loc = h.previousBiopsyLocation && h.previousBiopsyLocation.trim();
+    lines.push(`Prior biopsy pathology: ${h.previousBiopsyResult.trim()}${loc ? ` (${loc})` : ''}`);
+  }
+  if (h.radiology && h.radiology.trim()) {
+    const sz = h.radiologicSizeMm != null ? ` Radiologic size: ${h.radiologicSizeMm} mm.` : '';
+    lines.push(`Radiology: ${h.radiology.trim()}${sz}`);
+  }
+  if (h.previousCarcinomaMarkers && h.previousCarcinomaMarkers.trim()) {
+    lines.push(`Prior biomarkers: ${h.previousCarcinomaMarkers.trim()}`);
+  }
+  if (h.clipType && h.clipType.trim()) {
+    lines.push(`Biopsy clip: ${h.clipType.trim()}`);
+  }
+  if (!lines.length) return '';
+  return ['CLINICAL INFORMATION', ...lines].join('\n');
+}
+
+function renderIhcComments(caseData) {
+  const entries = (caseData.ihc || []).filter((e) => e.sentence && e.sentence.trim());
+  if (!entries.length) return '';
+
+  // Group by normalized antibody+finding to consolidate repeated stains
+  const groups = new Map();
+  for (const e of entries) {
+    const key = `${(e.antibody || '').trim().toLowerCase()}||${(e.finding || '').trim().toLowerCase()}`;
+    if (!groups.has(key)) {
+      groups.set(key, { antibody: (e.antibody || '').trim(), finding: (e.finding || '').trim(), blocks: [], sentence: e.sentence.trim() });
+    }
+    const block = (e.block || '').trim();
+    if (block && !groups.get(key).blocks.includes(block)) {
+      groups.get(key).blocks.push(block);
+    }
+  }
+
+  const lines = [];
+  for (const g of groups.values()) {
+    if (g.blocks.length > 0) {
+      const blockStr = g.blocks.length === 1
+        ? `block ${g.blocks[0]}`
+        : `blocks ${g.blocks.slice(0, -1).join(', ')} and ${g.blocks[g.blocks.length - 1]}`;
+      lines.push(`${g.antibody} (${blockStr}): ${g.sentence}`);
+    } else {
+      lines.push(g.sentence);
+    }
+  }
+
+  return ['IMMUNOHISTOCHEMISTRY', ...lines].join('\n');
+}
+
+function renderCptSummary(caseData) {
+  const specimens = caseData.specimens || [];
+  const ihc = computeIhcBilling(caseData.ihc);
+  const lines = ['CPT BILLING SUMMARY'];
+
+  for (const s of specimens) {
+    const base = `${s.letter}. ${s.designation || ''}${s.cpt ? ` — ${s.cpt}` : ''}`.trim();
+    lines.push(base);
+    const block = ihc.find((x) => x.specimenLetter === String(s.letter).toUpperCase());
+    if (block) {
+      const ihcLine = block.entries.map((e) => `${e.antibody} ${e.cpt}`).join(', ');
+      lines.push(`   IHC: ${ihcLine}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+export function assembleReport(caseData) {
+  const parts = [];
+
+  if (caseData.receivedDate) {
+    parts.push(`Specimen received: ${caseData.receivedDate}`);
+  }
+
+  const clinicalInfo = renderClinicalInfo(caseData);
+  if (clinicalInfo) parts.push(clinicalInfo);
+
+  parts.push('FINAL DIAGNOSIS:');
+  const fd = buildFinalDiagnosisBlock(caseData);
+  if (fd) parts.push(fd);
+
+  parts.push('---');
+  parts.push(
+    caseData.mode === 'excision-invasive'
+      ? renderCapSynopticInvasive(caseData)
+      : renderCapSynopticDCIS(caseData)
+  );
+
+  const ihc = renderIhcComments(caseData);
+  if (ihc) {
+    parts.push('---');
+    parts.push(ihc);
+  }
+
+  const cpt = renderCptSummary(caseData);
+  if (cpt) {
+    parts.push('---');
+    parts.push(cpt);
+  }
+
+  return parts.join('\n\n');
+}
