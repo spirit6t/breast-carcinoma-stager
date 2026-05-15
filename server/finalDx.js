@@ -29,7 +29,10 @@ function buildDcisBlock(caseData) {
   if (!specimens.length) return '';
 
   const lines = [];
-  const primary = specimens[0];
+  const primary = findPrimarySpecimen(specimens);
+  const secondaries = specimens
+    .filter(s => s.letter !== primary.letter)
+    .sort((a, b) => a.letter.localeCompare(b.letter));
   const primaryDesignation = primary ? primary.designation || '' : '';
   const procedure = cap.specimen?.procedure || '';
   const laterality = cap.specimen?.laterality || '';
@@ -80,9 +83,12 @@ function buildDcisBlock(caseData) {
 
   const blocks = [lines.filter(Boolean).join('\n')];
 
-  for (const s of specimens.slice(1)) {
-    const header = `${s.letter}. BREAST${laterality ? `, ${upper(laterality)}` : ''}, ${upper(s.designation || '')}:`;
-    blocks.push(`${header}\nNEGATIVE FOR DCIS AND INVASIVE CARCINOMA`);
+  for (const s of secondaries) {
+    const h = `${s.letter}. ${upper(s.designation || '')}:`;
+    const dx = s.diagnosis && s.diagnosis.trim()
+      ? upper(s.diagnosis.trim())
+      : 'NEGATIVE FOR DCIS AND INVASIVE CARCINOMA';
+    blocks.push(`${h}\n${dx}`);
   }
 
   return blocks.join('\n\n');
@@ -92,6 +98,23 @@ function fmtSize(primary, additional) {
   if (primary == null || primary === '') return '';
   const main = `${primary} MM`;
   return additional ? `${main} (ADDITIONAL: ${String(additional).toUpperCase()})` : main;
+}
+
+function findPrimarySpecimen(specimens) {
+  if (!specimens || !specimens.length) return null;
+  const MARGIN = /\bmargin\b|\bshave\b/i;
+  const NODE   = /\bnode\b|\blymph\b|\bsentinel\b|\baxilla\b/i;
+  const RESECT = /\blumpectomy\b|\bmastectomy\b|\bpartial\s+mastectomy\b|\bbreast\b/i;
+
+  // Prefer an explicit breast resection specimen
+  const byResect = specimens.find(s => RESECT.test(s.designation) && !MARGIN.test(s.designation) && !NODE.test(s.designation));
+  if (byResect) return byResect;
+
+  // Prefer non-margin, non-node
+  const other = specimens.find(s => !MARGIN.test(s.designation) && !NODE.test(s.designation));
+  if (other) return other;
+
+  return specimens[0];
 }
 
 function buildInvasiveBlock(caseData) {
@@ -106,7 +129,10 @@ function buildInvasiveBlock(caseData) {
   if (!specimens.length) return '';
 
   const blocks = [];
-  const primary = specimens[0];
+  const primary = findPrimarySpecimen(specimens);
+  const secondaries = specimens
+    .filter(s => s.letter !== primary.letter)
+    .sort((a, b) => a.letter.localeCompare(b.letter));
   const procedure = cap.specimen?.procedure || '';
   const laterality = cap.specimen?.laterality || '';
 
@@ -221,8 +247,7 @@ function buildInvasiveBlock(caseData) {
 
   blocks.push(lines.join('\n'));
 
-  for (const s of specimens.slice(1)) {
-    // Use the custom diagnosis if the agent (or user) has set it; otherwise default text.
+  for (const s of secondaries) {
     const h = `${s.letter}. ${upper(s.designation || '')}:`;
     const dx = s.diagnosis && s.diagnosis.trim()
       ? upper(s.diagnosis.trim())
