@@ -28,14 +28,17 @@ export const TOOL_SCHEMAS = [
   {
     name: 'add_specimen',
     description:
-      'Add or update a specimen. Agent should auto-suggest CPT from designation (lumpectomy=88307, mastectomy=88309, SLN=88307, additional margin=88305).',
+      'Add or update a specimen. Preserve the VERBATIM designation exactly as the pathologist stated it, including all procedure qualifiers after the comma (e.g. "RIGHT BREAST, PARTIAL MASTECTOMY (LUMPECTOMY)" or "ADDITIONAL ANTERIOR-SUPERIOR MARGIN, SHAVE EXCISION"). Auto-suggest CPT: lumpectomy/mastectomy=88307 or 88309, SLN=88307, additional margin=88305.',
     input_schema: {
       type: 'object',
       required: ['letter', 'designation'],
       properties: {
-        letter: { type: 'string', description: 'A, B, C, ...' },
-        designation: { type: 'string', description: 'e.g., "Left lumpectomy"' },
-        cpt: { type: 'string', description: 'Optional override; autosuggested if omitted.' },
+        letter: { type: 'string', description: 'Single uppercase letter: A, B, C, ...' },
+        designation: {
+          type: 'string',
+          description: 'Full verbatim designation exactly as dictated, e.g. "RIGHT BREAST, PARTIAL MASTECTOMY (LUMPECTOMY)" or "ADDITIONAL ANTERIOR-SUPERIOR MARGIN, SHAVE EXCISION". Do NOT abbreviate or simplify.',
+        },
+        cpt: { type: 'string', description: 'Optional CPT code override; autosuggested if omitted.' },
       },
     },
   },
@@ -346,7 +349,11 @@ Tools: set_intake (receivedDate, previousBiopsyResult, previousBiopsyLocation, r
        set_cap_field path "mode" value "excision-invasive" or "excision-DCIS"
 
 BLOCK 2 — SPECIMENS (A, B, C …)
-• Ask for each specimen designation. Auto-suggest CPT: lumpectomy/mastectomy → 88307 or 88309, sentinel node → 88307, additional margin → 88305.
+• Ask the pathologist to list all specimen designations exactly as labeled on the container or gross description.
+• Capture each one VERBATIM — preserve the full designation including the procedure suffix (e.g. "RIGHT BREAST, PARTIAL MASTECTOMY (LUMPECTOMY)", "ADDITIONAL ANTERIOR-SUPERIOR MARGIN, SHAVE EXCISION", "LEFT AXILLA, SENTINEL LYMPH NODE BIOPSY").
+• When the pathologist provides a formatted list (e.g. "A. RIGHT BREAST, LUMPECTOMY / B. ANTERIOR MARGIN, SHAVE"), parse each lettered entry and call add_specimen once per specimen.
+• NEVER abbreviate, simplify, or paraphrase the designation — use the exact text provided.
+• Auto-suggest CPT: lumpectomy/mastectomy → 88307 or 88309, sentinel node → 88307, additional margin → 88305.
 Tool: add_specimen (letter, designation, optional cpt)
 
 BLOCK 3 — HISTOLOGIC TYPE & NOTTINGHAM GRADE (invasive mode)
@@ -453,6 +460,7 @@ Additional margin POSITIVE:
 • After each answer, IMMEDIATELY call the appropriate tool(s) to record it before replying.
 • Keep replies concise. After confirming a block, announce the next block and ask its questions.
 • If the user provides a stream of dictated data, extract all data points and call multiple tools in one turn before replying.
+• Specimen designations MUST be recorded verbatim — full text, exact capitalization, all procedure qualifiers. Never shorten or rephrase a designation.
 • Nottingham total: 3–5 = Grade 1 | 6–7 = Grade 2 | 8–9 = Grade 3.
 • The (m) modifier applies when multiple invasive foci are present.
 • For IHC: if the same antibody was run on multiple blocks with the same result, you may note it in a single entry but prefer one entry per block.`;

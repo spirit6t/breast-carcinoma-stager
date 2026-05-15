@@ -159,7 +159,15 @@ export function ReportPreview({ caseState, update }: Props) {
             Report{caseState.reportText ? ' ✓' : ''}
           </button>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button
+            className="sm primary"
+            onClick={doRender}
+            disabled={loading}
+            title="Re-render report from current case data"
+          >
+            {loading ? '…' : '↻ Regenerate'}
+          </button>
           <button className="sm" onClick={loadDraft}>Load</button>
           <button className="sm" onClick={saveDraft}>Save</button>
         </div>
