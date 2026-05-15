@@ -106,6 +106,7 @@ export interface CaseData {
       nippleInvolvement: string | null;
       chestWallInvolvement: string | null;
       treatmentEffect: string | null;
+      treatmentEffectNodes: string | null;
     };
     margins: {
       status: string | null;

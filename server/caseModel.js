@@ -77,7 +77,8 @@ export function createEmptyCase(mode = MODES.EXCISION_DCIS) {
         skinInvolvement: [],          // ['Paget disease','Dermal lymphovascular invasion','Skin/dermal invasion','Skin ulceration','Skin satellite nodules']
         nippleInvolvement: null,
         chestWallInvolvement: null,
-        treatmentEffect: null,        // 'No prior treatment' | 'Probable response' | 'No definite response' | 'Complete response (no residual invasive)'
+        treatmentEffect: null,        // 'No known presurgical therapy' | 'No definite response...' | 'Probable or definite response...' | 'No residual invasive carcinoma...'
+        treatmentEffectNodes: null,   // 'Not applicable' | 'No definite response...' | 'Probable or definite response...' | 'No lymph node metastases...'
       },
       margins: {
         // DCIS-mode margins:

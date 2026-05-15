@@ -192,7 +192,16 @@ function buildInvasiveBlock(caseData) {
         : '');
   }
 
-  const clipLine = `PREVIOUS BIOPSY SITE CHANGES${clip ? ` AND ${upper(clip)} CLIP` : ' AND CLIP'} PRESENT`;
+  const clipLine = clip
+    ? `PREVIOUS BIOPSY SITE CHANGES AND ${upper(clip)} CLIP PRESENT`
+    : 'PREVIOUS BIOPSY SITE CHANGES AND CLIP PRESENT';
+
+  // Biomarkers status line
+  const bioPending = cap.specialStudies?.biomarkersSource === 'Pending';
+  const bioPrior   = cap.specialStudies?.biomarkersSource === 'Performed on prior biopsy';
+  let markersLine = '';
+  if (bioPending)      markersLine = 'BREAST BIOMARKERS PENDING (ER/PR/HER2/Ki-67)';
+  else if (bioPrior)   markersLine = 'BREAST BIOMARKERS PERFORMED ON PRIOR BIOPSY — SEE SYNOPTIC REPORT';
 
   const lines = [
     header,
@@ -206,14 +215,19 @@ function buildInvasiveBlock(caseData) {
     nodeLine,
     stageLine,
     clipLine,
+    markersLine,
     'SEE SYNOPTIC REPORT FOR TUMOR CHARACTERISTICS',
   ].filter(Boolean);
 
   blocks.push(lines.join('\n'));
 
   for (const s of specimens.slice(1)) {
-    const h = `${s.letter}. BREAST${laterality ? `, ${upper(laterality)}` : ''}, ${upper(s.designation || '')}:`;
-    blocks.push(`${h}\nNEGATIVE FOR INVASIVE CARCINOMA AND DCIS`);
+    // Use the custom diagnosis if the agent (or user) has set it; otherwise default text.
+    const h = `${s.letter}. ${upper(s.designation || '')}:`;
+    const dx = s.diagnosis && s.diagnosis.trim()
+      ? upper(s.diagnosis.trim())
+      : 'NEGATIVE FOR INVASIVE CARCINOMA AND DCIS';
+    blocks.push(`${h}\n${dx}`);
   }
 
   return blocks.join('\n\n');

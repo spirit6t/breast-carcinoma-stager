@@ -37,7 +37,19 @@ const CALCS = ['Not identified', 'Present in invasive carcinoma', 'Present in DC
 const SKIN_INVOLVE = ['Not applicable', 'Paget disease of nipple', 'Dermal lymphovascular invasion', 'Skin/dermal invasion', 'Skin ulceration', 'Skin satellite nodules'];
 const NIPPLE = ['Not identified', 'Paget disease only', 'Invasive carcinoma involves nipple', 'DCIS involves nipple', 'Cannot be assessed'];
 const CHEST_WALL = ['Not identified', 'Skeletal muscle invasion', 'Rib invasion', 'Cannot be assessed'];
-const TX_EFFECT = ['No prior treatment / Not applicable', 'Probable / definite response', 'No definite response', 'Complete pathologic response (no residual invasive carcinoma)'];
+const TX_EFFECT = [
+  'No known presurgical therapy',
+  'No definite response to presurgical therapy in the invasive carcinoma',
+  'Probable or definite response to presurgical therapy in the invasive carcinoma',
+  'No residual invasive carcinoma is present in the breast after presurgical therapy',
+];
+const TX_EFFECT_NODES = [
+  'Not applicable',
+  'No definite response to presurgical therapy in metastatic carcinoma',
+  'Probable or definite response to presurgical therapy in metastatic carcinoma',
+  'No lymph node metastases. Fibrous scarring or histiocytic aggregates, possibly related to prior lymph node metastases with pathologic complete response',
+  'No lymph node metastases and no fibrous scarring or histiocytic aggregates in the nodes',
+];
 
 const INV_MARGIN_STATUSES = ['All margins negative for invasive carcinoma', 'Invasive carcinoma present at margin', 'Cannot be assessed'];
 const DCIS_MARGIN_STATUSES = ['No DCIS', 'All margins negative for DCIS', 'DCIS present at margin', 'Cannot be assessed'];
@@ -471,7 +483,12 @@ export function CAPFormInvasive({ caseState, update }: Props) {
 
       <h3>Treatment Effect (Post-Neoadjuvant)</h3>
       <div className="field">
+        <label>Treatment Effect in the Breast</label>
         <SingleChips options={TX_EFFECT} value={t.treatmentEffect} onChange={(v) => setCap('tumor.treatmentEffect', v)} />
+      </div>
+      <div className="field">
+        <label>Treatment Effect in the Lymph Node</label>
+        <SingleChips options={TX_EFFECT_NODES} value={(t as any).treatmentEffectNodes ?? null} onChange={(v) => setCap('tumor.treatmentEffectNodes', v)} />
       </div>
 
       <h3>Margins — Invasive Carcinoma</h3>

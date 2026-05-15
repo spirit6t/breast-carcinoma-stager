@@ -1,248 +1,344 @@
 /**
  * CAP synoptic renderer for Breast Excision with Invasive Carcinoma.
- * Standard: AJCC-UICC 8.
- * Output style: section headers preserved; only filled items are printed.
+ * Standard: AJCC-UICC 8 — exact CAP protocol output format.
  */
 
-function line(label, value) {
-  return value != null && String(value).trim() !== '' ? `  ${label}: ${value}` : null;
+const NUCLEAR_PLEOMORPHISM_DESC = {
+  1: 'Small nuclei with little increase in size in comparison with normal breast epithelial cells, regular outlines, uniform nuclear chromatin, little variation in size',
+  2: 'Cells larger than normal with open vesicular nuclei, visible nucleoli, moderate variability in size and shape',
+  3: 'Vesicular nuclei, often with prominent nucleoli, exhibiting marked variation in size and shape, occasionally with very large and bizarre forms',
+};
+
+const PT_DESC = {
+  'pTis (DCIS)': 'Ductal carcinoma in situ',
+  'pTis (Paget)': "Paget disease of the nipple not associated with invasive carcinoma and/or carcinoma in situ in the underlying breast parenchyma",
+  'pT1mi': 'Tumor measuring ≤1 mm in greatest dimension (microinvasion)',
+  'pT1a': 'Tumor measuring >1 mm but ≤5 mm in greatest dimension',
+  'pT1b': 'Tumor measuring >5 mm but ≤10 mm in greatest dimension',
+  'pT1c': 'Tumor measuring >10 mm but ≤20 mm in greatest dimension',
+  'pT2':  'Tumor measuring >20 mm but ≤50 mm in greatest dimension',
+  'pT3':  'Tumor measuring >50 mm in greatest dimension',
+  'pT4a': 'Extension to chest wall, not including only pectoralis muscle adherence/invasion',
+  'pT4b': "Ulceration and/or ipsilateral satellite nodule(s) and/or edema (including peau d'orange) of the skin, which does not meet the criteria for inflammatory carcinoma",
+  'pT4c': 'Both T4a and T4b criteria are present',
+  'pT4d': 'Inflammatory carcinoma',
+};
+
+const PN_DESC = {
+  'pN0':       'No regional lymph node metastasis identified or ITCs only',
+  'pN0(i+)':  'Malignant cells in regional lymph node(s) ≤0.2 mm (detected by H&E or IHC including isolated tumor cell clusters)',
+  'pN0(mol+)':'Positive molecular findings; no ITCs detected by H&E or IHC',
+  'pN1mi':    'Micrometastases (>0.2 mm and/or >200 cells, but none >2.0 mm)',
+  'pN1a':     'Metastases in 1–3 axillary lymph nodes, at least one metastasis >2.0 mm',
+  'pN1b':     'Metastases in ipsilateral internal mammary sentinel nodes, excluding ITCs',
+  'pN1c':     'pN1a and pN1b combined',
+  'pN2a':     'Metastases in 4–9 axillary lymph nodes (at least one tumor deposit >2.0 mm)',
+  'pN2b':     'Metastases in clinically detected ipsilateral internal mammary lymph nodes in the absence of axillary lymph node metastases',
+  'pN3a':     'Metastases in ≥10 axillary lymph nodes (at least one tumor deposit >2.0 mm); or metastases to the infraclavicular (level III axillary) lymph nodes',
+  'pN3b':     'Metastases in clinically detected ipsilateral internal mammary lymph nodes in the presence of ≥1 positive axillary lymph node(s); or in >3 axillary lymph nodes and in internal mammary lymph nodes with micrometastases or macrometastases detected by sentinel lymph node biopsy but not clinically detected',
+  'pN3c':     'Metastases in ipsilateral supraclavicular lymph nodes',
+};
+
+const N_SUFFIX_DESC = {
+  sn: 'Sentinel node(s) evaluated. If 6 or more nodes (sentinel or nonsentinel) are removed, this modifier should not be used',
+  f:  'Based on fine-needle aspiration or core biopsy',
+};
+
+function normalizePt(raw) {
+  if (!raw) return null;
+  return raw.startsWith('p') ? raw : `p${raw}`;
 }
 
-function listLine(label, arr, joiner = ', ') {
-  if (!Array.isArray(arr) || arr.length === 0) return null;
-  return `  ${label}: ${arr.join(joiner)}`;
+function normalizePn(raw) {
+  if (!raw) return null;
+  return raw.startsWith('p') ? raw : `p${raw}`;
 }
 
-function section(title, lines) {
-  const clean = lines.filter(Boolean);
-  if (!clean.length) return null;
-  return [title, ...clean].join('\n');
-}
+function computeTumorExtent(t) {
+  const skinItems = (t.skinInvolvement || []).filter((s) => s && !/not applicable/i.test(s));
+  const nipple = t.nippleInvolvement && !/not\s+identified|cannot/i.test(t.nippleInvolvement)
+    ? t.nippleInvolvement : null;
+  const chest = t.chestWallInvolvement && !/not\s+identified|cannot/i.test(t.chestWallInvolvement)
+    ? t.chestWallInvolvement : null;
 
-function fmtSize(primary, additional, cannot) {
-  if (primary != null && String(primary).trim() !== '') {
-    const add = additional ? ` (additional: ${additional} mm)` : '';
-    return `${primary} mm${add}`;
+  if (!skinItems.length && !nipple && !chest) {
+    return 'Not applicable (skin, nipple, and skeletal muscle are absent OR are uninvolved)';
   }
-  if (cannot) return `Cannot be determined (${cannot})`;
-  return null;
+  const parts = [];
+  if (skinItems.length) parts.push(`Skin involvement: ${skinItems.join(', ')}`);
+  if (nipple) parts.push(`Nipple: ${nipple}`);
+  if (chest) parts.push(`Chest wall: ${chest}`);
+  return parts.join('; ');
 }
 
-function fmtNottingham(n) {
-  if (!n) return [];
-  const out = [];
-  const score = (label, v) => v != null && v !== '' ? `${label}: ${v}/3` : null;
-  out.push(score('Tubule Formation', n.tubuleFormation));
-  out.push(score('Nuclear Pleomorphism', n.nuclearPleomorphism));
-  if (n.mitoticCount != null && n.mitoticCount !== '') {
-    const mits = n.mitosesPer10HPF != null && n.mitosesPer10HPF !== ''
-      ? ` (${n.mitosesPer10HPF} mitoses/10 HPF)`
-      : '';
-    out.push(`Mitotic Count: ${n.mitoticCount}/3${mits}`);
-  }
-  if (n.totalScore != null && n.totalScore !== '') {
-    out.push(`Total Nottingham Score: ${n.totalScore}/9`);
-  }
-  if (n.overallGrade) out.push(`Overall Grade: ${n.overallGrade}`);
-  return out.filter(Boolean).map((s) => `  ${s}`);
-}
-
-function fmtBiomarker(prefix, b) {
-  if (!b) return [];
-  const out = [];
-  if (b.status) out.push(`${prefix} Status: ${b.status}`);
-  if (b.percentPositive != null && b.percentPositive !== '') {
-    out.push(`${prefix} Percent Positive Nuclei: ${b.percentPositive}%`);
-  }
-  if (b.intensity) out.push(`${prefix} Intensity: ${b.intensity}`);
-  if (b.internalControl) out.push(`${prefix} Internal Control: ${b.internalControl}`);
-  return out.map((s) => `  ${s}`);
+function fmtDist(mm) {
+  if (mm == null || mm === '') return null;
+  const n = Number(mm);
+  return n >= 10 ? `${(n / 10).toFixed(1)} cm` : `${n} mm`;
 }
 
 export function renderCapSynopticInvasive(caseData) {
   const cap = caseData.cap || {};
   const spec = cap.specimen || {};
-  const t = cap.tumor || {};
-  const m = cap.margins || {};
-  const n = cap.nodes || {};
-  const met = cap.metastasis || {};
-  const stg = cap.stage || {};
-  const ss = cap.specialStudies || {};
+  const t    = cap.tumor || {};
+  const m    = cap.margins || {};
+  const n    = cap.nodes || {};
+  const met  = cap.metastasis || {};
+  const stg  = cap.stage || {};
+  const ss   = cap.specialStudies || {};
 
-  const sections = [];
+  const L = [];
+  const add = (s) => { if (s != null && s !== '') L.push(s); };
 
-  sections.push('CASE SUMMARY: INVASIVE CARCINOMA OF THE BREAST — RESECTION');
-  sections.push('Standard(s): AJCC-UICC 8');
+  add('CASE SUMMARY: (INVASIVE CARCINOMA OF THE BREAST: Resection)');
+  add('Standard(s): AJCC-UICC 8');
+  add('');
 
-  sections.push(
-    section('SPECIMEN', [
-      line('Procedure', spec.procedure),
-      line('Specimen Laterality', spec.laterality),
-      line('Specimen Integrity', spec.integrity),
-    ])
-  );
+  // ── SPECIMEN ────────────────────────────────────────────────────────────────
+  add('SPECIMEN');
+  if (spec.procedure)  add(`Procedure: ${spec.procedure}`);
+  if (spec.laterality) add(`Specimen Laterality: ${spec.laterality}`);
+  if (spec.integrity)  add(`Specimen Integrity: ${spec.integrity}`);
+  add('');
 
-  // ---- TUMOR ----
-  const histType = t.histologicType
-    + (t.histologicType === 'Other (specify)' && t.histologicTypeOther
-      ? `: ${t.histologicTypeOther}`
-      : '');
-  const invasiveSize = fmtSize(t.invasiveSizeMm, t.invasiveAdditionalDimMm, t.invasiveSizeCannotBeDetermined);
-  const dcisExtent = t.dcisExtentMm != null && t.dcisExtentMm !== '' ? `${t.dcisExtentMm} mm` : null;
+  // ── TUMOR ───────────────────────────────────────────────────────────────────
+  add('TUMOR');
 
-  const tumorLines = [
-    listLine('Tumor Site', t.site),
-    line('Histologic Type', t.histologicType ? histType : null),
-    line('Tumor Focality', t.focality),
-    line('Number of Foci', t.numberOfFoci),
-    line('Size of Largest Invasive Focus', invasiveSize),
-    line('Size of Largest Focus (additional)', t.sizeOfLargestFocus != null && t.sizeOfLargestFocus !== '' ? `${t.sizeOfLargestFocus} mm` : null),
-    ...fmtNottingham(t.nottingham),
-    line('Lymphovascular Invasion', t.lymphovascularInvasion),
-    line('Dermal Lymphovascular Invasion', t.dermalLymphovascularInvasion),
-    line('Ductal Carcinoma In Situ (DCIS)', t.dcisAssociated),
-    line('Estimated Extent of DCIS', dcisExtent),
-    line('DCIS Component', t.dcisPercentage),
-    line('DCIS Nuclear Grade', t.dcisGrade),
-    listLine('DCIS Architectural Patterns', t.dcisArchitecturalPatterns),
-    line('DCIS Necrosis', t.dcisNecrosis),
-    line('Extensive Intraductal Component (EIC)',
-      t.extensiveIntraductalComponent === true ? 'Present'
-        : t.extensiveIntraductalComponent === false ? 'Not identified'
-        : null),
-    listLine('Microcalcifications', [
-      ...(t.microcalcifications || []),
-      ...(t.microcalcificationsOther ? [`Other: ${t.microcalcificationsOther}`] : []),
-    ]),
-    listLine('Skin / Dermal Involvement', t.skinInvolvement),
-    line('Nipple Involvement', t.nippleInvolvement),
-    line('Chest Wall (Skeletal Muscle, Rib) Involvement', t.chestWallInvolvement),
-    line('Treatment Effect (Post-Neoadjuvant)', t.treatmentEffect),
-  ];
-  sections.push(section('TUMOR', tumorLines));
+  if ((t.site || []).length) add(`+Tumor Site: ${t.site.join(', ')}`);
 
-  // ---- MARGINS ----
-  const marginLines = [];
-  if (m.invasiveStatus) marginLines.push(`  Margin Status (Invasive Carcinoma): ${m.invasiveStatus}`);
-  if (m.invasiveStatus === 'All margins negative for invasive carcinoma') {
-    if (m.invasiveDistanceMm != null && m.invasiveDistanceMm !== '') {
-      marginLines.push(`  Distance from Invasive Carcinoma to Closest Margin: ${m.invasiveDistanceMm} mm`);
+  if (t.histologicType) {
+    add('Histologic Type');
+    const ht = (t.histologicType === 'Other (specify)' && t.histologicTypeOther)
+      ? t.histologicTypeOther : t.histologicType;
+    add(` - ${ht}`);
+  }
+
+  // Nottingham
+  const nott = t.nottingham || {};
+  if (nott.tubuleFormation != null || nott.nuclearPleomorphism != null || nott.mitoticCount != null) {
+    add('Histologic Grade (Nottingham Histologic Score):');
+    if (nott.tubuleFormation != null) {
+      add(`- Glandular (Acinar) / Tubular Differentiation: ${nott.tubuleFormation}`);
     }
-    if (Array.isArray(m.invasiveClosestMargins) && m.invasiveClosestMargins.length) {
-      marginLines.push(`  Closest Margin(s) to Invasive Carcinoma: ${m.invasiveClosestMargins.join(', ')}`);
+    if (nott.nuclearPleomorphism != null) {
+      const desc = NUCLEAR_PLEOMORPHISM_DESC[nott.nuclearPleomorphism] || '';
+      add(`- Nuclear Pleomorphism: Score ${nott.nuclearPleomorphism}${desc ? ` (${desc})` : ''}`);
+    }
+    if (nott.mitoticCount != null) {
+      const mStr = nott.mitosesPer10HPF != null ? ` (${nott.mitosesPer10HPF} mitoses/10 HPF)` : '';
+      add(`Mitotic Rate: Score ${nott.mitoticCount}${mStr}`);
+    }
+    if (nott.totalScore != null && nott.overallGrade) {
+      const g = String(nott.overallGrade).match(/Grade\s*(\d+)/i)?.[1] || nott.totalScore;
+      add(`Overall Grade: Grade ${g} (scores of ${nott.totalScore})`);
     }
   }
-  if (m.invasiveStatus === 'Invasive carcinoma present at margin' && Array.isArray(m.invasiveInvolvedMargins) && m.invasiveInvolvedMargins.length) {
-    marginLines.push('  Margin(s) Involved by Invasive Carcinoma:');
-    for (const mg of m.invasiveInvolvedMargins) {
-      const extent = mg.extent ? ` — ${mg.extent}` : '';
-      marginLines.push(`    • ${mg.side}${extent}`);
+
+  // Tumor Size
+  if (t.invasiveSizeMm != null && t.invasiveSizeMm !== '') {
+    const addDim = t.invasiveAdditionalDimMm ? ` (additional dimensions: ${t.invasiveAdditionalDimMm} mm)` : '';
+    add(`Tumor Size: ${t.invasiveSizeMm} mm in largest dimension${addDim}`);
+  } else if (t.invasiveSizeCannotBeDetermined) {
+    add(`Tumor Size: Cannot be determined (${t.invasiveSizeCannotBeDetermined})`);
+  }
+
+  // Focality
+  if (t.focality) {
+    add(`Tumor Focality: ${t.focality}`);
+    if (/multiple/i.test(t.focality) && t.numberOfFoci) {
+      add(`+Number of Foci: ${t.numberOfFoci}`);
     }
   }
-  if (m.dcisStatus) marginLines.push(`  Margin Status (DCIS): ${m.dcisStatus}`);
-  if (m.dcisStatus === 'All margins negative for DCIS') {
-    if (m.dcisDistanceMm != null && m.dcisDistanceMm !== '') {
-      marginLines.push(`  Distance from DCIS to Closest Margin: ${m.dcisDistanceMm} mm`);
+
+  // DCIS
+  add(`Ductal Carcinoma In Situ (DCIS): ${t.dcisAssociated || 'Not identified'}`);
+  if (t.dcisAssociated === 'Present') {
+    if (t.extensiveIntraductalComponent != null) {
+      add(`+Extensive Intraductal Component (EIC): ${t.extensiveIntraductalComponent ? 'Positive for EIC' : 'Negative for EIC'}`);
     }
-    if (Array.isArray(m.dcisClosestMargins) && m.dcisClosestMargins.length) {
-      marginLines.push(`  Closest Margin(s) to DCIS: ${m.dcisClosestMargins.join(', ')}`);
+    if (t.dcisExtentMm != null && t.dcisExtentMm !== '') {
+      add(`+Estimated Size (Extent) of DCIS: at least ${t.dcisExtentMm} mm`);
+    }
+    if ((t.dcisArchitecturalPatterns || []).length) {
+      add(`+Architectural Patterns: ${t.dcisArchitecturalPatterns.join(', ')}`);
+    }
+    if (t.dcisGrade) add(`+Nuclear Grade (DCIS): ${t.dcisGrade}`);
+    if (t.dcisNecrosis) add(`+Necrosis: ${t.dcisNecrosis}`);
+  }
+
+  // Tumor Extent (skin / nipple / chest wall summary)
+  add(`Tumor Extent: ${computeTumorExtent(t)}`);
+
+  // LVI
+  if (t.lymphovascularInvasion) add(`Lymphatic and / or Vascular Invasion: ${t.lymphovascularInvasion}`);
+  if (t.dermalLymphovascularInvasion && !/not applicable/i.test(t.dermalLymphovascularInvasion)) {
+    add(`Dermal Lymphovascular Invasion: ${t.dermalLymphovascularInvasion}`);
+  }
+
+  // Treatment Effect
+  if (t.treatmentEffect)      add(`Treatment Effect in the Breast: ${t.treatmentEffect}`);
+  if (t.treatmentEffectNodes) add(`Treatment Effect in the Lymph Node: ${t.treatmentEffectNodes}`);
+
+  add('');
+
+  // ── MARGINS ─────────────────────────────────────────────────────────────────
+  add('MARGINS');
+
+  if (m.invasiveStatus) {
+    add('Margin Status for Invasive Carcinoma (required only if residual invasive carcinoma is present in specimen)');
+    add(m.invasiveStatus);
+    if (m.invasiveStatus === 'All margins negative for invasive carcinoma') {
+      const dist    = fmtDist(m.invasiveDistanceMm);
+      const closest = (m.invasiveClosestMargins || []).join(', ');
+      if (dist || closest) {
+        const parts = [dist, closest ? `${closest.toLowerCase()} margin` : null].filter(Boolean);
+        add(`Distance from Invasive Carcinoma to Closest Margin: ${parts.join(' ')}`);
+      }
+    } else if (m.invasiveStatus === 'Invasive carcinoma present at margin') {
+      for (const mg of m.invasiveInvolvedMargins || []) {
+        add(`Margin Involved: ${mg.side}${mg.extent ? ` (${mg.extent})` : ''}`);
+      }
     }
   }
-  if (m.dcisStatus === 'DCIS present at margin' && Array.isArray(m.dcisInvolvedMargins) && m.dcisInvolvedMargins.length) {
-    marginLines.push('  Margin(s) Involved by DCIS:');
-    for (const mg of m.dcisInvolvedMargins) {
-      const extent = mg.extent ? ` — ${mg.extent}` : '';
-      marginLines.push(`    • ${mg.side}${extent}`);
+
+  if (m.dcisStatus && m.dcisStatus !== 'No DCIS' && m.dcisStatus !== 'Cannot be assessed') {
+    add('Margin Status for DCIS (required only if DCIS is present in specimen)');
+    add(m.dcisStatus);
+    if (m.dcisStatus === 'All margins negative for DCIS') {
+      const dist    = fmtDist(m.dcisDistanceMm);
+      const closest = (m.dcisClosestMargins || []).join(', ');
+      if (dist || closest) {
+        const parts = [dist, closest ? `${closest.toLowerCase()} margin` : null].filter(Boolean);
+        add(`Distance from DCIS to Closest Margin: ${parts.join(' ')}`);
+      }
+    } else if (m.dcisStatus === 'DCIS present at margin') {
+      for (const mg of m.dcisInvolvedMargins || []) {
+        add(`Margin Involved by DCIS: ${mg.side}${mg.extent ? ` (${mg.extent})` : ''}`);
+      }
     }
   }
-  sections.push(section('MARGINS', marginLines));
+  add('');
 
-  // ---- LYMPH NODES ----
-  const nodeLines = [];
-  if (n.status) nodeLines.push(`  Regional Lymph Node Status: ${n.status}`);
-  if (n.allNegative === true) nodeLines.push('  All regional lymph nodes negative for tumor');
-  if (n.macroCount != null && n.macroCount !== '') {
-    nodeLines.push(`  Lymph Nodes with Macrometastases (>2 mm): ${n.macroCount}`);
-  }
-  if (n.microCount != null && n.microCount !== '') {
-    nodeLines.push(`  Lymph Nodes with Micrometastases (>0.2–2 mm): ${n.microCount}`);
-  }
-  if (n.itcCount != null && n.itcCount !== '') {
-    nodeLines.push(`  Lymph Nodes with Isolated Tumor Cells (≤0.2 mm): ${n.itcCount}`);
-  }
-  if (n.largestDepositMm != null && n.largestDepositMm !== '') {
-    nodeLines.push(`  Size of Largest Nodal Metastatic Deposit: ${n.largestDepositMm} mm`);
-  }
-  if (n.extranodalExtension) nodeLines.push(`  Extranodal Extension: ${n.extranodalExtension}`);
-  if (n.totalExamined != null && n.totalExamined !== '') {
-    nodeLines.push(`  Total Number of Lymph Nodes Examined: ${n.totalExamined}`);
-  }
-  if (n.sentinelExamined != null && n.sentinelExamined !== '') {
-    nodeLines.push(`  Number of Sentinel Nodes Examined: ${n.sentinelExamined}`);
-  }
-  if (Array.isArray(n.nSuffix) && n.nSuffix.length) {
-    nodeLines.push(`  Regional Lymph Nodes Modifier: ${n.nSuffix.map((s) => `(${s})`).join(' ')}`);
-  }
-  sections.push(section('REGIONAL LYMPH NODES', nodeLines));
+  // ── REGIONAL LYMPH NODES ────────────────────────────────────────────────────
+  add('REGIONAL LYMPH NODES');
+  const nodesNA = !n.status || /not applicable/i.test(n.status);
 
-  sections.push(
-    section('DISTANT METASTASIS', [
-      line('Distant Site(s) Involved', met.distantSites),
-      line('pM Category', met.pmCategory),
-    ])
-  );
+  if (nodesNA) {
+    add('Regional Lymph Node Status: Not applicable');
+  } else {
+    const macro    = Number(n.macroCount) || 0;
+    const micro    = Number(n.microCount) || 0;
+    const itc      = Number(n.itcCount)   || 0;
+    const positive = macro + micro + itc;
+    const total    = n.totalExamined != null ? n.totalExamined : null;
 
-  // ---- pTNM ----
-  const stagePrefix = stg.yPrefix ? 'yp' : (stg.rPrefix ? 'r' : 'p');
-  const ptDisplay = stg.ptCategory
-    ? `${stagePrefix}${stg.ptCategory.replace(/^p/, '')}${stg.mModifier ? ' (m)' : ''}`
-    : null;
-  const pnDisplay = stg.pnCategory
-    ? `${stagePrefix}${stg.pnCategory.replace(/^p/, '')}`
-    : null;
+    if (n.allNegative === true) {
+      add('Regional Lymph Node Status: All regional lymph nodes negative for tumor');
+    } else if (positive > 0) {
+      const frac = total != null ? `(${positive}/${total})` : String(positive);
+      add(`Regional Lymph Node Status: ${positive} lymph node(s) positive for carcinoma ${frac}`);
+      if (macro)  add(`  Lymph Nodes with Macrometastases (>2 mm): ${macro}`);
+      if (micro)  add(`  Lymph Nodes with Micrometastases (>0.2–2 mm): ${micro}`);
+      if (itc)    add(`  Lymph Nodes with Isolated Tumor Cells (≤0.2 mm): ${itc}`);
+      if (n.largestDepositMm != null && n.largestDepositMm !== '') {
+        add(`Size of Largest Nodal Metastatic Deposit: ${n.largestDepositMm} mm`);
+      }
+      if (n.extranodalExtension) add(`Extranodal Extension: ${n.extranodalExtension}`);
+    }
 
-  sections.push(
-    section('PATHOLOGIC STAGE CLASSIFICATION (pTNM, AJCC 8th Edition)', [
-      line('TNM Descriptor', stg.yPrefix ? 'y (post-neoadjuvant)' : (stg.rPrefix ? 'r (recurrent)' : null)),
-      line('pT Category', ptDisplay),
-      line('pN Category', pnDisplay),
-      line('pM Category', stg.pmCategory),
-    ])
-  );
-
-  // ---- ADDITIONAL FINDINGS ----
-  const af = (caseData.cap?.additionalFindings || '').trim();
-  sections.push(section('ADDITIONAL FINDINGS', [af ? `  ${af}` : null]));
-
-  // ---- SPECIAL STUDIES ----
-  const ssLines = [];
-  if (ss.biomarkersSource) ssLines.push(`  Source of Biomarker Studies: ${ss.biomarkersSource}`);
-  if (ss.biomarkersSource === 'Performed on prior biopsy' && ss.priorBiopsyAccession) {
-    ssLines.push(`  Prior Biopsy Accession: ${ss.priorBiopsyAccession}`);
+    if (total != null && total !== '') {
+      add(`Total Number of Lymph Nodes Examined (sentinel and non-sentinel): ${total}`);
+    }
+    if (n.sentinelExamined != null && n.sentinelExamined !== '') {
+      add(`Number of Sentinel Nodes Examined: ${n.sentinelExamined}`);
+    }
   }
-  ssLines.push(...fmtBiomarker('Estrogen Receptor (ER)', ss.er));
-  ssLines.push(...fmtBiomarker('Progesterone Receptor (PR)', ss.pr));
-  if (ss.her2Ihc?.score) ssLines.push(`  HER2 (IHC) Score: ${ss.her2Ihc.score}`);
-  if (ss.her2Ihc?.interpretation) ssLines.push(`  HER2 (IHC) Interpretation: ${ss.her2Ihc.interpretation}`);
+  add('');
+
+  // ── DISTANT METASTASIS ──────────────────────────────────────────────────────
+  add('DISTANT METASTASIS');
+  add(`Distant Site(s) Involved: ${met.distantSites || 'Not applicable'}`);
+  add('');
+
+  // ── pTNM CLASSIFICATION ─────────────────────────────────────────────────────
+  add('pTNM CLASSIFICATION (AJCC 8th Edition)');
+  const yp  = stg.yPrefix;
+  const rp  = stg.rPrefix;
+  const pfx = yp ? 'y' : (rp ? 'r' : '');
+  if (yp) add('Modified Classification: y (post-neoadjuvant therapy)');
+  else if (rp) add('Modified Classification: r (recurrent disease)');
+
+  if (stg.ptCategory) {
+    const key  = normalizePt(stg.ptCategory);          // e.g. "pT1c"
+    const rawT = key.replace(/^p/, '');                // e.g. "T1c"
+    const mMod = stg.mModifier ? ' (m)' : '';
+    const desc = PT_DESC[key] || '';
+    add(`pT Category: ${pfx}p${rawT}${mMod}${desc ? `: ${desc}` : ''}`);
+    add('T Suffix: Not applicable');
+  }
+
+  if (stg.pnCategory) {
+    const key  = normalizePn(stg.pnCategory);
+    const rawN = key.replace(/^p/, '');
+    const desc = PN_DESC[key] || '';
+    add(`pN Category: ${pfx}p${rawN}${desc ? `: ${desc}` : ''}`);
+    for (const suf of n.nSuffix || []) {
+      const sd = N_SUFFIX_DESC[suf] || '';
+      add(`N Suffix: (${suf})${sd ? `: ${sd}` : ''}`);
+    }
+  }
+
+  const pmCat = stg.pmCategory || met.pmCategory;
+  if (!pmCat || /not applicable/i.test(pmCat)) {
+    add('pM Category: Not applicable - pM cannot be determined from the submitted specimen(s)');
+  } else {
+    add(`pM Category: ${pmCat}`);
+  }
+  add('');
+
+  // ── ADDITIONAL FINDINGS ─────────────────────────────────────────────────────
+  const af = (cap.additionalFindings || '').trim();
+  if (af) { add('ADDITIONAL FINDINGS'); add(af); add(''); }
+
+  // ── SPECIAL STUDIES ─────────────────────────────────────────────────────────
+  add('SPECIAL STUDIES');
+
+  if (ss.biomarkersSource === 'Performed on prior biopsy') {
+    add('+Breast Biomarker Testing Performed on Previous Biopsy');
+    if (ss.priorBiopsyAccession) add(`  Prior Biopsy Accession: ${ss.priorBiopsyAccession}`);
+  } else if (ss.biomarkersSource === 'Performed on this specimen') {
+    add('+Breast Biomarker Testing Performed on This Specimen');
+  } else if (ss.biomarkersSource === 'Pending') {
+    add('+Breast Biomarker Testing: Pending');
+  }
+
+  if (ss.er?.status) {
+    const v = ss.er.percentPositive != null ? `${ss.er.percentPositive}%` : ss.er.status;
+    add(`Estrogen Receptor (ER) Status: ${v}`);
+    if (ss.er.intensity) add(`Estrogen Receptor (ER) Intensity: ${ss.er.intensity}`);
+  }
+  if (ss.pr?.status) {
+    const v = ss.pr.percentPositive != null ? `${ss.pr.percentPositive}%` : ss.pr.status;
+    add(`Progesterone Receptor (PgR) Status: ${v}`);
+    if (ss.pr.intensity) add(`Progesterone Receptor (PgR) Intensity: ${ss.pr.intensity}`);
+  }
+  if (ss.her2Ihc?.score) {
+    const interp = ss.her2Ihc.interpretation
+      ? `${ss.her2Ihc.interpretation} (Score ${ss.her2Ihc.score})`
+      : `Score ${ss.her2Ihc.score}`;
+    add(`HER2 (by immunohistochemistry): ${interp}`);
+  }
   if (ss.her2Ish?.performed) {
-    if (ss.her2Ish.method) ssLines.push(`  HER2 (ISH) Method: ${ss.her2Ish.method}`);
-    if (ss.her2Ish.ratio != null && ss.her2Ish.ratio !== '') ssLines.push(`  HER2 (ISH) Ratio: ${ss.her2Ish.ratio}`);
-    if (ss.her2Ish.her2SignalsPerCell != null && ss.her2Ish.her2SignalsPerCell !== '') {
-      ssLines.push(`  HER2 Signals/Cell: ${ss.her2Ish.her2SignalsPerCell}`);
-    }
-    if (ss.her2Ish.cep17SignalsPerCell != null && ss.her2Ish.cep17SignalsPerCell !== '') {
-      ssLines.push(`  CEP17 Signals/Cell: ${ss.her2Ish.cep17SignalsPerCell}`);
-    }
-    if (ss.her2Ish.interpretation) ssLines.push(`  HER2 (ISH) Interpretation: ${ss.her2Ish.interpretation}`);
+    if (ss.her2Ish.method)  add(`HER2 (ISH) Method: ${ss.her2Ish.method}`);
+    if (ss.her2Ish.ratio != null) add(`HER2/CEP17 Ratio: ${ss.her2Ish.ratio}`);
+    if (ss.her2Ish.interpretation) add(`HER2 (ISH) Interpretation: ${ss.her2Ish.interpretation}`);
   }
   if (ss.ki67Percent != null && ss.ki67Percent !== '') {
-    ssLines.push(`  Ki-67 Proliferation Index: ${ss.ki67Percent}%`);
+    add(`Ki-67 Percentage of Positive Nuclei: ${ss.ki67Percent}%`);
   }
-  // Fall back to free-text if no structured biomarker data was entered:
-  if (!ssLines.length && ss.erPrHer2Text && ss.erPrHer2Text.trim()) {
-    ssLines.push(`  ER/PR/HER2: ${ss.erPrHer2Text.trim()}`);
+  if (!ss.biomarkersSource && ss.erPrHer2Text?.trim()) {
+    add(ss.erPrHer2Text.trim());
   }
-  sections.push(section('SPECIAL STUDIES', ssLines));
 
-  return sections.filter(Boolean).join('\n\n');
+  return L.join('\n');
 }

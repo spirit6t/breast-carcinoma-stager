@@ -26,8 +26,8 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
   const apiKey =
     settings.provider === 'anthropic' ? settings.claudeApiKey : settings.openaiApiKey;
 
-  const send = async () => {
-    const msg = input.trim();
+  const send = async (override?: string) => {
+    const msg = (override ?? input).trim();
     if (!msg || busy) return;
     const hasKey = Boolean(apiKey);
     if (!hasKey) {
@@ -37,7 +37,7 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
     setBusy(true);
     setError(null);
     setChat((c) => [...c, { role: 'user', text: msg }]);
-    setInput('');
+    if (!override) setInput('');
     try {
       const resp = await agentStep({ settings, caseState, userMessage: msg, history });
       onCaseUpdate(resp.case);
@@ -79,19 +79,29 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
         </button>
       </h2>
 
-      <div className="chat">
-        {chat.length === 0 && (
-          <div className="dim">
-            Dictate or type case details. The agent will fill CAP fields, add IHC
-            entries, and ask clarifying questions. Try:
-            <br />
-            <em>"A is a left lumpectomy. Tumor is 22 mm in the upper outer quadrant, cribriform and solid, nuclear grade 2 with comedonecrosis and microcalcifications. All margins negative, closest anterior 1.5 mm."</em>
+      {chat.length === 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <button
+            className="primary"
+            style={{ width: '100%', padding: '10px 0', fontSize: 13 }}
+            onClick={() => { send('Begin the case interview.'); }}
+            disabled={busy || !apiKey}
+          >
+            ▶ Begin Case Interview
+          </button>
+          <div className="dim" style={{ marginTop: 8 }}>
+            Or type / dictate case details directly. The agent will fill CAP fields,
+            score Nottingham grade, compute pTNM, record IHC, and assemble the final report.
           </div>
-        )}
+        </div>
+      )}
+
+      <div className="chat">
         {chat.map((m, i) => (
           <div key={i} className={`msg ${m.role}`}>{m.text}</div>
         ))}
       </div>
+
 
       <div className="field">
         <textarea
@@ -102,7 +112,7 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
         />
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
           <VoiceInput onTranscript={(t) => setInput((s) => s ? `${s} ${t}` : t)} />
-          <button className="primary" onClick={send} disabled={busy}>
+          <button className="primary" onClick={() => send()} disabled={busy}>
             {busy ? 'Thinking…' : 'Send'}
           </button>
         </div>

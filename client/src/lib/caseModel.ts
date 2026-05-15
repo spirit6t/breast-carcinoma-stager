@@ -147,6 +147,7 @@ export function createEmptyCase(mode: Mode = 'excision-DCIS'): CaseData {
         nippleInvolvement: null,
         chestWallInvolvement: null,
         treatmentEffect: null,
+        treatmentEffectNodes: null,
       },
       margins: {
         status: null,
