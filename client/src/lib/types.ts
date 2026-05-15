@@ -168,4 +168,3 @@ export interface Settings {
   openaiModel: string;
 }
 
-export type WizardStep = 'intake' | 'specimens' | 'cap' | 'ihc' | 'review';

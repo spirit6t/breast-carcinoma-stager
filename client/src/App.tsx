@@ -1,32 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { CaseData, Settings, WizardStep } from './lib/types';
+import { useEffect, useRef, useState } from 'react';
+import type { CaseData, Settings } from './lib/types';
 import { createEmptyCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
 import { autosaveCase, loadAutosavedCase, loadSettings, saveSettings } from './lib/storage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AgentPane } from './components/AgentPane';
-import { IntakeStep } from './wizard/IntakeStep';
-import { SpecimensStep } from './wizard/SpecimensStep';
-import { CAPFormStep } from './wizard/CAPFormStep';
-import { IHCStep } from './wizard/IHCStep';
-import { ReviewStep } from './wizard/ReviewStep';
-
-const STEPS: { key: WizardStep; label: string }[] = [
-  { key: 'intake', label: 'Intake' },
-  { key: 'specimens', label: 'Specimens' },
-  { key: 'cap', label: 'CAP Synoptic' },
-  { key: 'ihc', label: 'Immunohistochemistry' },
-  { key: 'review', label: 'Review & Export' },
-];
+import { ReportPreview } from './components/ReportPreview';
 
 export default function App() {
   const [caseState, setCaseState] = useState<CaseData>(() => loadAutosavedCase() || createEmptyCase());
-  const [step, setStep] = useState<WizardStep>('intake');
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => { autosaveCase(caseState); }, [caseState]);
 
-  // Auto-compute pT / pN whenever driving fields change
   useEffect(() => {
     const computed =
       caseState.mode === 'excision-invasive'
@@ -66,32 +52,27 @@ export default function App() {
     });
   };
 
-  const stepDone = useMemo(() => ({
-    intake: Boolean(caseState.receivedDate),
-    specimens: caseState.specimens.length > 0,
-    cap: Boolean(caseState.cap.specimen.procedure && caseState.cap.stage.ptCategory),
-    ihc: true,
-    review: Boolean(caseState.reportText),
-  }), [caseState]);
-
-  const stepNodes: Record<WizardStep, React.ReactNode> = {
-    intake: <IntakeStep caseState={caseState} update={update} />,
-    specimens: <SpecimensStep caseState={caseState} update={update as any} />,
-    cap: <CAPFormStep caseState={caseState} update={update as any} />,
-    ihc: <IHCStep caseState={caseState} update={update as any} />,
-    review: <ReviewStep caseState={caseState} update={update as any} />,
-  };
-
-  const idx = STEPS.findIndex((s) => s.key === step);
-  const prev = idx > 0 ? STEPS[idx - 1].key : null;
-  const next = idx < STEPS.length - 1 ? STEPS[idx + 1].key : null;
-
   const newCase = () => {
-    if (!confirm('Start a new case? Current draft will be cleared from localStorage.')) return;
-    const c = createEmptyCase(caseState.mode);
-    setCaseState(c);
-    setStep('intake');
+    if (!confirm('Start a new case? Current draft will be cleared.')) return;
+    setCaseState(createEmptyCase(caseState.mode));
   };
+
+  const [agentWidth, setAgentWidth] = useState(620);
+  const dragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = e.clientX - dragStartX.current;
+      setAgentWidth(Math.max(320, Math.min(dragStartWidth.current + delta, window.innerWidth - 320)));
+    };
+    const onUp = () => { dragging.current = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  }, []);
 
   return (
     <div className="app">
@@ -99,46 +80,33 @@ export default function App() {
         <h1>Breast Carcinoma Stager</h1>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span className="status">
-            Mode: {caseState.mode} · Last saved: {new Date(caseState.updatedAt).toLocaleTimeString()}
+            Mode: {caseState.mode} · Saved: {new Date(caseState.updatedAt).toLocaleTimeString()}
           </span>
           <button onClick={newCase}>New Case</button>
           <button onClick={() => setShowSettings(true)}>Settings</button>
         </div>
       </header>
 
-      <main className="layout">
-        <aside className="sidebar">
-          <h2>Steps</h2>
-          <ol>
-            {STEPS.map((s) => (
-              <li
-                key={s.key}
-                className={`${step === s.key ? 'active' : ''} ${stepDone[s.key] ? 'done' : ''}`}
-                onClick={() => setStep(s.key)}
-              >
-                {s.label}
-              </li>
-            ))}
-          </ol>
-        </aside>
-
-        <section className="main">
-          {stepNodes[step]}
-          <div className="actions">
-            <button onClick={() => prev && setStep(prev)} disabled={!prev}>← Back</button>
-            <button className="primary" onClick={() => next && setStep(next)} disabled={!next}>
-              Next →
-            </button>
-          </div>
-        </section>
-
+      <main className="layout" style={{ gridTemplateColumns: `${agentWidth}px 6px 1fr` }}>
         <AgentPane
           caseState={caseState}
           settings={settings}
           onCaseUpdate={(c) => setCaseState(c)}
           openSettings={() => setShowSettings(true)}
-          onReportAssembled={() => setStep('review')}
+          onReportAssembled={() => {}}
         />
+        <div
+          className="resize-handle"
+          onMouseDown={(e) => {
+            dragging.current = true;
+            dragStartX.current = e.clientX;
+            dragStartWidth.current = agentWidth;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+          }}
+        />
+        <ReportPreview caseState={caseState} update={update as any} />
       </main>
 
       {showSettings && (
