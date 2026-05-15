@@ -17,6 +17,30 @@ function v(x: unknown): string | null {
   return String(x);
 }
 
+function addBusinessDays(dateStr: string, days: number): Date {
+  const d = new Date(dateStr + 'T12:00:00'); // noon to avoid DST edge cases
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) added++;
+  }
+  return d;
+}
+
+function signoutTarget(receivedDate: string | null): { label: string; overdue: boolean } | null {
+  if (!receivedDate) return null;
+  try {
+    const target = addBusinessDays(receivedDate, 4);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const overdue = target < today;
+    const label = target.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    return { label, overdue };
+  } catch {
+    return null;
+  }
+}
+
 function Section({ title, rows }: { title: string; rows: RowItem[] }) {
   const visible = rows.filter(r => r.value != null && r.value !== '');
   if (!visible.length) return null;
@@ -141,6 +165,7 @@ export function ReportPreview({ caseState, update }: Props) {
     : null;
 
   const hasData = c.specimens.length > 0 || c.cap.specimen.procedure || t.histologicType;
+  const target = signoutTarget(c.receivedDate);
 
   return (
     <div className="preview-pane">
@@ -184,11 +209,35 @@ export function ReportPreview({ caseState, update }: Props) {
               Start the agent interview to see case data here.
             </div>
           )}
-          <Section title="Case" rows={[
-            { label: 'Mode', value: v(c.mode) },
-            { label: 'Received', value: v(c.receivedDate) },
-            { label: 'Specimens', value: specimenList },
-          ]} />
+          <div className="ps-section">
+            <div className="ps-section-title">Case</div>
+            {v(c.mode) && (
+              <div className="ps-row">
+                <span className="ps-label">Mode</span>
+                <span className="ps-value">{c.mode}</span>
+              </div>
+            )}
+            {v(c.receivedDate) && (
+              <div className="ps-row">
+                <span className="ps-label">Received</span>
+                <span className="ps-value">{c.receivedDate}</span>
+              </div>
+            )}
+            {target && (
+              <div className="ps-row">
+                <span className="ps-label">Sign-out target</span>
+                <span className="ps-value" style={{ color: target.overdue ? 'var(--danger)' : 'var(--ok)', fontWeight: 600 }}>
+                  {target.label}{target.overdue ? ' — OVERDUE' : ''}
+                </span>
+              </div>
+            )}
+            {specimenList && (
+              <div className="ps-row">
+                <span className="ps-label">Specimens</span>
+                <span className="ps-value">{specimenList}</span>
+              </div>
+            )}
+          </div>
           <Section title="Procedure" rows={[
             { label: 'Procedure', value: v(c.cap.specimen.procedure) },
             { label: 'Laterality', value: v(c.cap.specimen.laterality) },
