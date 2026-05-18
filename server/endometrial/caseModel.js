@@ -93,6 +93,7 @@ export function createEmptyEndometrialCase() {
 }
 
 export function setAtPathEndo(obj, path, value) {
+  if (!path || typeof path !== 'string') throw new Error(`set_endo_field: path must be a non-empty string (got ${JSON.stringify(path)})`);
   const parts = path.replace(/^\./, '').split('.');
   let cur = obj;
   for (let i = 0; i < parts.length - 1; i++) {

@@ -90,7 +90,12 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
 
     const results = [];
     for (const tc of turn.toolCalls) {
-      const r = execTool(tc.name, tc.input || {}, currentCase);
+      let r;
+      try {
+        r = execTool(tc.name, tc.input || {}, currentCase);
+      } catch (toolErr) {
+        r = { error: String(toolErr?.message || toolErr) };
+      }
       if (r.error) {
         results.push({ error: r.error });
       } else {
