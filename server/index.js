@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 import { createEmptyCase, MODES } from './caseModel.js';
 import { suggestSpecimenCpt, computeIhcBilling } from './billing.js';
 import { assembleReport } from './reportAssembler.js';
@@ -18,9 +19,10 @@ const STATIC_DIR = path.join(__dirname, '../client/dist');
 
 // Serve built React app in production
 if (process.env.NODE_ENV === 'production') {
-  const { existsSync } = await import('fs');
-  if (!existsSync(STATIC_DIR)) {
-    console.error('[ERROR] client/dist not found — run `npm run build` before starting in production');
+  if (existsSync(STATIC_DIR)) {
+    console.log(`[static] serving client from ${STATIC_DIR}`);
+  } else {
+    console.error(`[ERROR] client/dist not found at ${STATIC_DIR} — client was not built`);
   }
   app.use(express.static(STATIC_DIR));
 }
