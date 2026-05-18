@@ -18,6 +18,10 @@ const STATIC_DIR = path.join(__dirname, '../client/dist');
 
 // Serve built React app in production
 if (process.env.NODE_ENV === 'production') {
+  const { existsSync } = await import('fs');
+  if (!existsSync(STATIC_DIR)) {
+    console.error('[ERROR] client/dist not found — run `npm run build` before starting in production');
+  }
   app.use(express.static(STATIC_DIR));
 }
 
