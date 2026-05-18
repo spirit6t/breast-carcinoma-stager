@@ -1,4 +1,4 @@
-import type { Settings, CaseData } from './types';
+import type { Settings, AnyCase } from './types';
 
 const SETTINGS_KEY = 'bcs.settings.v1';
 const CASE_DRAFT_KEY = 'bcs.case.v1';
@@ -25,7 +25,7 @@ export function saveSettings(s: Settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
 }
 
-export function loadAutosavedCase(): CaseData | null {
+export function loadAutosavedCase(): AnyCase | null {
   try {
     const raw = localStorage.getItem(CASE_DRAFT_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -34,7 +34,7 @@ export function loadAutosavedCase(): CaseData | null {
   }
 }
 
-export function autosaveCase(c: CaseData) {
+export function autosaveCase(c: AnyCase) {
   try {
     localStorage.setItem(CASE_DRAFT_KEY, JSON.stringify(c));
   } catch {

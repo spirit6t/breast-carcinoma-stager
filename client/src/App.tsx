@@ -1,62 +1,93 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CaseData, Settings } from './lib/types';
-import { createEmptyCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
+import type { AnyCase, CaseData, Settings } from './lib/types';
+import { createEmptyCase, createEmptyEndometrialCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
 import { autosaveCase, loadAutosavedCase, loadSettings, saveSettings } from './lib/storage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AgentPane } from './components/AgentPane';
 import { ReportPreview } from './components/ReportPreview';
 
+function OrganSelector({ onSelect }: { onSelect: (organ: 'breast' | 'endometrium') => void }) {
+  return (
+    <div className="organ-selector">
+      <h2>Select Cancer Type</h2>
+      <div className="organ-options">
+        <div className="organ-card" onClick={() => onSelect('breast')}>
+          <div className="organ-card-icon">🩺</div>
+          <div className="organ-card-title">Breast Carcinoma</div>
+          <div className="organ-card-desc">Invasive carcinoma or DCIS excision / lumpectomy / mastectomy</div>
+        </div>
+        <div className="organ-card" onClick={() => onSelect('endometrium')}>
+          <div className="organ-card-icon">🔬</div>
+          <div className="organ-card-title">Endometrial Carcinoma</div>
+          <div className="organ-card-desc">Total hysterectomy / BSO — AJCC 8 + FIGO 2009/2023 staging</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [caseState, setCaseState] = useState<CaseData>(() => loadAutosavedCase() || createEmptyCase());
+  const [caseState, setCaseState] = useState<AnyCase | null>(() => loadAutosavedCase() || null);
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [showSettings, setShowSettings] = useState(false);
+  const [selectingOrgan, setSelectingOrgan] = useState(false);
 
-  useEffect(() => { autosaveCase(caseState); }, [caseState]);
+  useEffect(() => { if (caseState) autosaveCase(caseState); }, [caseState]);
 
+  // Auto-compute breast staging only
   useEffect(() => {
+    if (!caseState || (caseState as any).organ === 'endometrium') return;
+    const bc = caseState as CaseData;
     const computed =
-      caseState.mode === 'excision-invasive'
-        ? computeInvasiveStage(caseState.cap)
-        : computeDCISStage(caseState.cap);
+      bc.mode === 'excision-invasive'
+        ? computeInvasiveStage(bc.cap)
+        : computeDCISStage(bc.cap);
     setCaseState((prev) => {
-      const s = prev.cap.stage;
+      if (!prev || (prev as any).organ === 'endometrium') return prev;
+      const p = prev as CaseData;
+      const s = p.cap.stage;
       if (s.ptCategory === computed.ptCategory && s.pnCategory === computed.pnCategory) return prev;
-      return {
-        ...prev,
-        cap: { ...prev.cap, stage: { ...s, ...computed } },
-        updatedAt: new Date().toISOString(),
-      };
+      return { ...p, cap: { ...p.cap, stage: { ...s, ...computed } }, updatedAt: new Date().toISOString() };
     });
   }, [
-    caseState.mode,
-    caseState.cap.tumor.histologicType,
-    caseState.cap.tumor.invasiveSizeMm,
-    caseState.cap.tumor.sizeOfLargestFocus,
-    caseState.cap.tumor.focality,
-    caseState.cap.tumor.chestWallInvolvement,
+    (caseState as any)?.organ,
+    (caseState as CaseData)?.cap?.tumor?.histologicType,
+    (caseState as CaseData)?.cap?.tumor?.invasiveSizeMm,
+    (caseState as CaseData)?.cap?.tumor?.sizeOfLargestFocus,
+    (caseState as CaseData)?.cap?.tumor?.focality,
+    (caseState as CaseData)?.cap?.tumor?.chestWallInvolvement,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    caseState.cap.tumor.skinInvolvement,
-    caseState.cap.nodes.status,
-    caseState.cap.nodes.macroCount,
-    caseState.cap.nodes.microCount,
-    caseState.cap.nodes.itcCount,
-    caseState.cap.nodes.allNegative,
-    caseState.cap.nodes.totalExamined,
+    (caseState as CaseData)?.cap?.tumor?.skinInvolvement,
+    (caseState as CaseData)?.cap?.nodes?.status,
+    (caseState as CaseData)?.cap?.nodes?.macroCount,
+    (caseState as CaseData)?.cap?.nodes?.microCount,
+    (caseState as CaseData)?.cap?.nodes?.itcCount,
+    (caseState as CaseData)?.cap?.nodes?.allNegative,
+    (caseState as CaseData)?.cap?.nodes?.totalExamined,
   ]);
 
-  const update = (patch: Partial<CaseData> | ((c: CaseData) => CaseData)) => {
+  const update = (patch: Partial<AnyCase> | ((c: AnyCase) => AnyCase)) => {
     setCaseState((c) => {
-      const next = typeof patch === 'function' ? patch(c) : { ...c, ...patch };
-      next.updatedAt = new Date().toISOString();
+      if (!c) return c;
+      const next = typeof patch === 'function' ? patch(c) : { ...c, ...patch } as AnyCase;
+      (next as any).updatedAt = new Date().toISOString();
       return next;
     });
   };
 
-  const newCase = () => {
-    if (!confirm('Start a new case? Current draft will be cleared.')) return;
-    setCaseState(createEmptyCase(caseState.mode));
+  const startNewCase = (organ: 'breast' | 'endometrium') => {
+    const c = organ === 'endometrium' ? createEmptyEndometrialCase() : createEmptyCase('excision-invasive');
+    setCaseState(c);
+    setSelectingOrgan(false);
   };
 
+  const newCase = () => {
+    if (!confirm('Start a new case? Current draft will be cleared.')) return;
+    setCaseState(null);
+    setSelectingOrgan(true);
+  };
+
+  // Resize handle
   const [agentWidth, setAgentWidth] = useState(620);
   const dragging = useRef(false);
   const dragStartX = useRef(0);
@@ -74,13 +105,38 @@ export default function App() {
     return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
   }, []);
 
+  const organ = (caseState as any)?.organ;
+  const organLabel = organ === 'endometrium' ? 'Endometrial Carcinoma' : 'Breast Carcinoma';
+
+  // Show organ selector if no case exists or user clicked New Case
+  if (!caseState || selectingOrgan) {
+    return (
+      <div className="app">
+        <header className="topbar">
+          <h1>Carcinoma Stager</h1>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button onClick={() => setShowSettings(true)}>Settings</button>
+          </div>
+        </header>
+        <OrganSelector onSelect={startNewCase} />
+        {showSettings && (
+          <SettingsPanel
+            settings={settings}
+            onClose={() => setShowSettings(false)}
+            onSave={(s) => { setSettings(s); saveSettings(s); }}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header className="topbar">
-        <h1>Breast Carcinoma Stager</h1>
+        <h1>Carcinoma Stager — <span style={{ color: 'var(--accent)', fontWeight: 400 }}>{organLabel}</span></h1>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span className="status">
-            Mode: {caseState.mode} · Saved: {new Date(caseState.updatedAt).toLocaleTimeString()}
+            Saved: {new Date((caseState as any).updatedAt).toLocaleTimeString()}
           </span>
           <button onClick={newCase}>New Case</button>
           <button onClick={() => setShowSettings(true)}>Settings</button>
@@ -89,7 +145,7 @@ export default function App() {
 
       <main className="layout" style={{ gridTemplateColumns: `${agentWidth}px 6px 1fr` }}>
         <AgentPane
-          caseState={caseState}
+          caseState={caseState as any}
           settings={settings}
           onCaseUpdate={(c) => setCaseState(c)}
           openSettings={() => setShowSettings(true)}
@@ -106,7 +162,7 @@ export default function App() {
             e.preventDefault();
           }}
         />
-        <ReportPreview caseState={caseState} update={update as any} />
+        <ReportPreview caseState={caseState as any} update={update as any} />
       </main>
 
       {showSettings && (

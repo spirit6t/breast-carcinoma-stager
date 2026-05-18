@@ -1,7 +1,7 @@
-import type { CaseData, Settings } from './types';
+import type { AnyCase, Settings } from './types';
 
 export interface AgentStepResponse {
-  case: CaseData;
+  case: AnyCase;
   assistantText: string;
   toolEvents: { name: string; input: unknown; result: unknown }[];
   clarifications: { field: string; question: string }[];
@@ -22,10 +22,10 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 }
 
 export function newCase(mode: string) {
-  return postJson<CaseData>('/api/case/new', { mode });
+  return postJson<AnyCase>('/api/case/new', { mode });
 }
 
-export function renderReport(caseState: CaseData) {
+export function renderReport(caseState: AnyCase) {
   return postJson<{ reportText: string }>('/api/report', { case: caseState });
 }
 
@@ -35,7 +35,7 @@ export function suggestSpecimenCpt(designation: string) {
   });
 }
 
-export function computeIhcBilling(ihc: CaseData['ihc']) {
+export function computeIhcBilling(ihc: AnyCase['ihc']) {
   return postJson<{ billing: { specimenLetter: string; entries: { antibody: string; cpt: string }[] }[] }>(
     '/api/billing/ihc',
     { ihc }
@@ -44,7 +44,7 @@ export function computeIhcBilling(ihc: CaseData['ihc']) {
 
 export function agentStep(params: {
   settings: Settings;
-  caseState: CaseData;
+  caseState: AnyCase;
   userMessage: string;
   history: unknown[];
 }) {

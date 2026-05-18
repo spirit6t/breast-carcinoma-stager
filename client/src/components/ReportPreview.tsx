@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CaseData } from '../lib/types';
+import type { AnyCase, CaseData, EndometrialCaseData } from '../lib/types';
 import { renderReport } from '../lib/api';
 import { downloadText, downloadJson, pickJsonFile } from '../lib/storage';
 
 interface Props {
-  caseState: CaseData;
-  update: (fn: (c: CaseData) => CaseData) => void;
+  caseState: AnyCase;
+  update: (fn: (c: AnyCase) => AnyCase) => void;
 }
 
 type Tab = 'data' | 'report';
@@ -87,16 +87,16 @@ export function ReportPreview({ caseState, update }: Props) {
     }
   };
 
+  const isEndo = (caseState as any).organ === 'endometrium';
+
   const saveDraft = () => {
-    downloadJson(`breast_case_${caseState.receivedDate || 'draft'}.json`, {
-      ...caseState,
-      reportText,
-    });
+    const prefix = isEndo ? 'endo' : 'breast';
+    downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
   const loadDraft = async () => {
     try {
-      const data = (await pickJsonFile()) as CaseData;
+      const data = (await pickJsonFile()) as AnyCase;
       if (data?.cap) {
         update(() => data);
         setReportText(data.reportText || '');
@@ -106,65 +106,69 @@ export function ReportPreview({ caseState, update }: Props) {
     }
   };
 
-  const c = caseState;
-  const t = c.cap.tumor;
-  const stg = c.cap.stage;
-  const m = c.cap.margins;
-  const n = c.cap.nodes;
-  const bio = c.cap.specialStudies;
-  const nt = t.nottingham;
+  const c = caseState as any;
+  const bc = isEndo ? null : (caseState as CaseData);
+  const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens.length
-    ? c.specimens.map(s => `${s.letter}. ${s.designation}`).join('; ')
+    ? c.specimens.map((s: any) => `${s.letter}. ${s.designation}`).join('; ')
     : null;
 
-  const nottStr = nt.overallGrade
-    ? `${nt.overallGrade} (Nottingham ${nt.totalScore ?? '?'}/9)`
+  // Breast-only computed values
+  const bt = bc?.cap.tumor;
+  const nottStr = bt?.nottingham?.overallGrade
+    ? `${bt.nottingham.overallGrade} (Nottingham ${bt.nottingham.totalScore ?? '?'}/9)`
     : null;
-
+  const bm = bc?.cap.margins;
   const margInvasiveStr = (() => {
-    if (!m.invasiveStatus) return null;
-    if (/negative/i.test(m.invasiveStatus)) {
-      const closest = (m.invasiveClosestMargins || []).join(', ');
-      const dist = m.invasiveDistanceMm != null ? `${m.invasiveDistanceMm} mm` : '';
+    if (!bm?.invasiveStatus) return null;
+    if (/negative/i.test(bm.invasiveStatus)) {
+      const closest = (bm.invasiveClosestMargins || []).join(', ');
+      const dist = bm.invasiveDistanceMm != null ? `${bm.invasiveDistanceMm} mm` : '';
       return `Negative${closest ? ` — ${closest}${dist ? ` at ${dist}` : ''}` : ''}`;
     }
-    const sides = (m.invasiveInvolvedMargins || []).map(x => x.side).join(', ');
-    return `Positive${sides ? ` (${sides})` : ''}`;
+    return `Positive${(bm.invasiveInvolvedMargins || []).map((x: any) => x.side).join(', ') ? ` (${(bm.invasiveInvolvedMargins || []).map((x: any) => x.side).join(', ')})` : ''}`;
   })();
-
   const margDcisStr = (() => {
-    if (!m.dcisStatus) return null;
-    if (/negative/i.test(m.dcisStatus)) {
-      const closest = (m.dcisClosestMargins || []).join(', ');
-      const dist = m.dcisDistanceMm != null ? `${m.dcisDistanceMm} mm` : '';
+    if (!bm?.dcisStatus) return null;
+    if (/negative/i.test(bm.dcisStatus)) {
+      const closest = (bm.dcisClosestMargins || []).join(', ');
+      const dist = bm.dcisDistanceMm != null ? `${bm.dcisDistanceMm} mm` : '';
       return `Negative${closest ? ` — ${closest}${dist ? ` at ${dist}` : ''}` : ''}`;
     }
     return `Positive`;
   })();
-
+  const bn = bc?.cap.nodes;
   const nodeStr = (() => {
-    if (/not\s+applicable/i.test(n.status || '')) return null;
-    if (n.allNegative) return `0/${n.totalExamined ?? '?'} negative`;
-    const pos = (Number(n.macroCount) || 0) + (Number(n.microCount) || 0) + (Number(n.itcCount) || 0);
-    if (pos > 0)
-      return `${pos}/${n.totalExamined ?? '?'} positive${n.largestDepositMm ? ` (largest ${n.largestDepositMm} mm)` : ''}`;
+    if (!bn || /not\s+applicable/i.test(bn.status || '')) return null;
+    if (bn.allNegative) return `0/${bn.totalExamined ?? '?'} negative`;
+    const pos = (Number(bn.macroCount) || 0) + (Number(bn.microCount) || 0) + (Number(bn.itcCount) || 0);
+    if (pos > 0) return `${pos}/${bn.totalExamined ?? '?'} positive${bn.largestDepositMm ? ` (largest ${bn.largestDepositMm} mm)` : ''}`;
     return null;
   })();
+  const bbio = bc?.cap.specialStudies;
+  const erStr = bbio?.er?.status ? `${bbio.er.status}${bbio.er.percentPositive != null ? ` (${bbio.er.percentPositive}%)` : ''}` : null;
+  const prStr = bbio?.pr?.status ? `${bbio.pr.status}${bbio.pr.percentPositive != null ? ` (${bbio.pr.percentPositive}%)` : ''}` : null;
+  const her2Str = bbio?.her2Ihc?.score ? `IHC ${bbio.her2Ihc.score}${bbio.her2Ihc.interpretation ? ` — ${bbio.her2Ihc.interpretation}` : ''}` : null;
 
-  const erStr = bio.er.status
-    ? `${bio.er.status}${bio.er.percentPositive != null ? ` (${bio.er.percentPositive}%)` : ''}`
-    : null;
+  // Endo node summary
+  const endoNodeStr = (() => {
+    if (!ec) return null;
+    const pel = ec.cap.nodes.pelvis;
+    const paa = ec.cap.nodes.paraAortic;
+    const parts: string[] = [];
+    if (pel.totalExamined != null) {
+      const pos = (Number(pel.macroCount) || 0) + (Number(pel.microCount) || 0);
+      parts.push(`Pelvic: ${pos}/${pel.totalExamined}`);
+    }
+    if (paa.totalExamined != null) {
+      const pos = (Number(paa.macroCount) || 0) + (Number(paa.microCount) || 0);
+      parts.push(`Para-aortic: ${pos}/${paa.totalExamined}`);
+    }
+    return parts.length ? parts.join(' · ') : null;
+  })();
 
-  const prStr = bio.pr.status
-    ? `${bio.pr.status}${bio.pr.percentPositive != null ? ` (${bio.pr.percentPositive}%)` : ''}`
-    : null;
-
-  const her2Str = bio.her2Ihc.score
-    ? `IHC ${bio.her2Ihc.score}${bio.her2Ihc.interpretation ? ` — ${bio.her2Ihc.interpretation}` : ''}`
-    : null;
-
-  const hasData = c.specimens.length > 0 || c.cap.specimen.procedure || t.histologicType;
+  const hasData = c.specimens.length > 0 || c.cap.specimen.procedure || c.cap.tumor.histologicType;
   const target = signoutTarget(c.receivedDate);
 
   return (
@@ -238,58 +242,114 @@ export function ReportPreview({ caseState, update }: Props) {
               </div>
             )}
           </div>
-          <Section title="Procedure" rows={[
-            { label: 'Procedure', value: v(c.cap.specimen.procedure) },
-            { label: 'Laterality', value: v(c.cap.specimen.laterality) },
-          ]} />
-          <Section title="Prior History" rows={[
-            { label: 'Radiology', value: v(c.priorHistory.radiology) },
-            { label: 'Radiologic size', value: c.priorHistory.radiologicSizeMm != null ? `${c.priorHistory.radiologicSizeMm} mm` : null },
-            { label: 'Prior biopsy Dx', value: v(c.priorHistory.previousBiopsyResult) },
-            { label: 'Prior markers', value: v(c.priorHistory.previousCarcinomaMarkers) },
-            { label: 'Clip type', value: v(c.priorHistory.clipType) },
-          ]} />
-          <Section title="Tumor" rows={[
-            { label: 'Histologic type', value: v(t.histologicType) },
-            { label: 'Invasive size', value: t.invasiveSizeMm != null ? `${t.invasiveSizeMm} mm` : null },
-            { label: 'Focality', value: v(t.focality) },
-            { label: 'Nottingham', value: nottStr },
-            { label: 'LVI', value: v(t.lymphovascularInvasion) },
-            { label: 'Skin involvement', value: t.skinInvolvement?.length ? t.skinInvolvement.join(', ') : null },
-            { label: 'Chest wall', value: v(t.chestWallInvolvement) },
-            { label: 'Treatment effect (breast)', value: v(t.treatmentEffect) },
-            { label: 'Treatment effect (nodes)', value: v(t.treatmentEffectNodes) },
-          ]} />
-          {t.dcisAssociated && /present/i.test(t.dcisAssociated) && (
-            <Section title="Associated DCIS" rows={[
-              { label: 'Grade', value: v(t.dcisGrade) },
-              { label: 'Extent', value: t.dcisExtentMm != null ? `${t.dcisExtentMm} mm` : null },
-              { label: 'EIC', value: t.extensiveIntraductalComponent ? 'Present' : null },
-            ]} />
+
+          {isEndo ? (
+            <>
+              <Section title="Procedure" rows={[
+                { label: 'Procedure', value: v(ec?.cap.specimen.procedure) },
+                { label: 'Integrity', value: v(ec?.cap.specimen.integrity) },
+              ]} />
+              <Section title="Clinical History" rows={[
+                { label: 'Clinical history', value: v(ec?.priorHistory.clinicalHistory) },
+                { label: 'Prior biopsy Dx', value: v(ec?.priorHistory.previousBiopsyResult) },
+                { label: 'Radiology', value: v(ec?.priorHistory.radiologicFindings) },
+              ]} />
+              <Section title="Tumor" rows={[
+                { label: 'Histologic type', value: v(ec?.cap.tumor.histologicType) },
+                { label: 'FIGO grade', value: v(ec?.cap.tumor.histologicGrade) },
+                { label: 'Tumor size', value: ec?.cap.tumor.tumorSizeMm != null ? `${ec.cap.tumor.tumorSizeMm} mm` : null },
+                { label: 'Myometrial invasion', value: v(ec?.cap.tumor.myometrialInvasion) },
+                { label: 'Myometrial invasion %', value: ec?.cap.tumor.myometrialInvasionPercent != null ? `${ec.cap.tumor.myometrialInvasionPercent}%` : null },
+                { label: 'Lower uterine segment', value: v(ec?.cap.tumor.lowerUterineSegment) },
+                { label: 'Cervical involvement', value: v(ec?.cap.tumor.cervicalInvolvement) },
+                { label: 'Uterine serosal', value: v(ec?.cap.tumor.uterineSerosal) },
+                { label: 'LVI', value: v(ec?.cap.tumor.lvi) },
+                { label: 'LVI foci', value: ec?.cap.tumor.lviFoci != null ? String(ec.cap.tumor.lviFoci) : null },
+                { label: 'Peritoneal washings', value: v(ec?.cap.tumor.peritonealWashings) },
+                { label: 'Fallopian tubes', value: v(ec?.cap.tumor.fallopianTubes) },
+                { label: 'Ovaries', value: v(ec?.cap.tumor.ovaries) },
+                { label: 'Adnexal involvement', value: v(ec?.cap.tumor.adnexalInvolvement) },
+                { label: 'Adenomyosis', value: v(ec?.cap.tumor.adenomyosis) },
+              ]} />
+              <Section title="Margins" rows={[
+                { label: 'Status', value: v(ec?.cap.margins.status) },
+                { label: 'Closest margin', value: ec?.cap.margins.closestMm != null ? `${ec.cap.margins.closestMm} mm` : null },
+              ]} />
+              <Section title="Lymph Nodes" rows={[
+                { label: 'Result', value: endoNodeStr },
+              ]} />
+              <Section title="Stage" rows={[
+                { label: 'pT', value: v(ec?.cap.stage.ptCategory) },
+                { label: 'pN', value: v(ec?.cap.stage.pnCategory) },
+                { label: 'pM', value: v(ec?.cap.stage.pmCategory) },
+                { label: 'FIGO 2009', value: v(ec?.cap.stage.figoStage2009) },
+                { label: 'FIGO 2023', value: v(ec?.cap.stage.figoStage2023) },
+                { label: 'y-prefix (neoadjuvant)', value: ec?.cap.stage.yPrefix ? 'Yes' : null },
+              ]} />
+              <Section title="Biomarkers" rows={[
+                { label: 'Source', value: v(ec?.cap.specialStudies.biomarkersSource) },
+                { label: 'ER', value: v(ec?.cap.specialStudies.er) },
+                { label: 'PR', value: v(ec?.cap.specialStudies.pr) },
+                { label: 'MMR', value: v(ec?.cap.specialStudies.mmr) },
+                { label: 'p53', value: v(ec?.cap.specialStudies.p53) },
+              ]} />
+            </>
+          ) : (
+            <>
+              <Section title="Procedure" rows={[
+                { label: 'Procedure', value: v(bc?.cap.specimen.procedure) },
+                { label: 'Laterality', value: v(bc?.cap.specimen.laterality) },
+              ]} />
+              <Section title="Prior History" rows={[
+                { label: 'Radiology', value: v(bc?.priorHistory.radiology) },
+                { label: 'Radiologic size', value: bc?.priorHistory.radiologicSizeMm != null ? `${bc.priorHistory.radiologicSizeMm} mm` : null },
+                { label: 'Prior biopsy Dx', value: v(bc?.priorHistory.previousBiopsyResult) },
+                { label: 'Prior markers', value: v(bc?.priorHistory.previousCarcinomaMarkers) },
+                { label: 'Clip type', value: v(bc?.priorHistory.clipType) },
+              ]} />
+              <Section title="Tumor" rows={[
+                { label: 'Histologic type', value: v(bt?.histologicType) },
+                { label: 'Invasive size', value: bt?.invasiveSizeMm != null ? `${bt.invasiveSizeMm} mm` : null },
+                { label: 'Focality', value: v(bt?.focality) },
+                { label: 'Nottingham', value: nottStr },
+                { label: 'LVI', value: v(bt?.lymphovascularInvasion) },
+                { label: 'Skin involvement', value: bt?.skinInvolvement?.length ? bt.skinInvolvement.join(', ') : null },
+                { label: 'Chest wall', value: v(bt?.chestWallInvolvement) },
+                { label: 'Treatment effect (breast)', value: v(bt?.treatmentEffect) },
+                { label: 'Treatment effect (nodes)', value: v(bt?.treatmentEffectNodes) },
+              ]} />
+              {bt?.dcisAssociated && /present/i.test(bt.dcisAssociated) && (
+                <Section title="Associated DCIS" rows={[
+                  { label: 'Grade', value: v(bt?.dcisGrade) },
+                  { label: 'Extent', value: bt?.dcisExtentMm != null ? `${bt.dcisExtentMm} mm` : null },
+                  { label: 'EIC', value: bt?.extensiveIntraductalComponent ? 'Present' : null },
+                ]} />
+              )}
+              <Section title="Margins — Invasive" rows={[
+                { label: 'Status', value: margInvasiveStr },
+              ]} />
+              <Section title="Margins — DCIS" rows={[
+                { label: 'Status', value: margDcisStr },
+              ]} />
+              <Section title="Lymph Nodes" rows={[
+                { label: 'Result', value: nodeStr },
+                { label: 'Extranodal ext.', value: v(bn?.extranodalExtension) },
+              ]} />
+              <Section title="Stage" rows={[
+                { label: 'pT', value: v(bc?.cap.stage.ptCategory) },
+                { label: 'pN', value: v(bc?.cap.stage.pnCategory) },
+                { label: 'pM', value: v(bc?.cap.stage.pmCategory) },
+                { label: 'y-prefix (neoadjuvant)', value: bc?.cap.stage.yPrefix ? 'Yes' : null },
+              ]} />
+              <Section title="Biomarkers" rows={[
+                { label: 'Source', value: v(bbio?.biomarkersSource) },
+                { label: 'ER', value: erStr },
+                { label: 'PR', value: prStr },
+                { label: 'HER2 IHC', value: her2Str },
+                { label: 'Ki-67', value: bbio?.ki67Percent != null ? `${bbio.ki67Percent}%` : null },
+              ]} />
+            </>
           )}
-          <Section title="Margins — Invasive" rows={[
-            { label: 'Status', value: margInvasiveStr },
-          ]} />
-          <Section title="Margins — DCIS" rows={[
-            { label: 'Status', value: margDcisStr },
-          ]} />
-          <Section title="Lymph Nodes" rows={[
-            { label: 'Result', value: nodeStr },
-            { label: 'Extranodal ext.', value: v(n.extranodalExtension) },
-          ]} />
-          <Section title="Stage" rows={[
-            { label: 'pT', value: v(stg.ptCategory) },
-            { label: 'pN', value: v(stg.pnCategory) },
-            { label: 'pM', value: v(stg.pmCategory) },
-            { label: 'y-prefix (neoadjuvant)', value: stg.yPrefix ? 'Yes' : null },
-          ]} />
-          <Section title="Biomarkers" rows={[
-            { label: 'Source', value: v(bio.biomarkersSource) },
-            { label: 'ER', value: erStr },
-            { label: 'PR', value: prStr },
-            { label: 'HER2 IHC', value: her2Str },
-            { label: 'Ki-67', value: bio.ki67Percent != null ? `${bio.ki67Percent}%` : null },
-          ]} />
         </div>
       )}
 

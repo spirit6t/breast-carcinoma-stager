@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { CaseData, Settings } from '../lib/types';
+import type { AnyCase, Settings } from '../lib/types';
 import { agentStep } from '../lib/api';
 import { VoiceInput } from './VoiceInput';
 
@@ -56,9 +56,9 @@ function FormattedMessage({ text }: { text: string }) {
 }
 
 interface Props {
-  caseState: CaseData;
+  caseState: AnyCase;
   settings: Settings;
-  onCaseUpdate: (c: CaseData) => void;
+  onCaseUpdate: (c: AnyCase) => void;
   openSettings: () => void;
   onReportAssembled?: () => void;
 }

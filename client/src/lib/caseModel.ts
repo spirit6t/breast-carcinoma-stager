@@ -1,4 +1,4 @@
-import type { CaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -202,6 +202,42 @@ export function createEmptyCase(mode: Mode = 'excision-DCIS'): CaseData {
         },
         ki67Percent: null,
       },
+    },
+    ihc: [],
+    reportText: '',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyEndometrialCase(): EndometrialCaseData {
+  return {
+    version: 1,
+    organ: 'endometrium',
+    mode: 'hysterectomy',
+    receivedDate: null,
+    signoutDate: null,
+    priorHistory: { clinicalHistory: '', previousBiopsyResult: '', radiologicFindings: '' },
+    specimens: [],
+    cap: {
+      specimen: { procedure: null, integrity: null },
+      tumor: {
+        histologicType: null, histologicGrade: null, tumorSizeMm: null,
+        myometrialInvasion: null, myometrialInvasionPercent: null, myometrialComment: '',
+        adenomyosis: null, uterineSerosal: null, lowerUterineSegment: null,
+        cervicalInvolvement: null, otherOrganInvolvement: '',
+        peritonealWashings: null, lvi: null, lviFoci: null,
+        fallopianTubes: null, ovaries: null, adnexalInvolvement: null,
+      },
+      margins: { status: null, closestMm: null, closestLocations: [], involvedLocations: [] },
+      nodes: {
+        pelvis: { status: null, macroCount: null, microCount: null, itcCount: null, totalExamined: null, sentinelExamined: null, largestDepositMm: null, laterality: [] },
+        paraAortic: { status: null, macroCount: null, microCount: null, itcCount: null, totalExamined: null, sentinelExamined: null, largestDepositMm: null, laterality: [] },
+        nSuffix: [],
+      },
+      metastasis: { sites: [] },
+      stage: { ptCategory: null, pnCategory: null, pmCategory: null, figoStage2009: null, figoStage2023: null, yPrefix: false, rPrefix: false },
+      additionalFindings: '',
+      specialStudies: { biomarkersSource: null, er: null, pr: null, mmr: null, p53: null, representativeBlock: '' },
     },
     ihc: [],
     reportText: '',

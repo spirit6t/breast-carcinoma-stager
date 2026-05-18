@@ -2,6 +2,7 @@ import { buildFinalDiagnosisBlock } from './finalDx.js';
 import { renderCapSynopticDCIS } from './cap/excisionDCIS.js';
 import { renderCapSynopticInvasive } from './cap/excisionInvasive.js';
 import { computeIhcBilling } from './billing.js';
+import { assembleEndometrialReport } from './endometrial/reportAssembler.js';
 
 function renderClinicalInfo(caseData) {
   const h = caseData.priorHistory || {};
@@ -73,7 +74,7 @@ function renderCptSummary(caseData) {
   return lines.join('\n');
 }
 
-export function assembleReport(caseData) {
+function assembleBreastReport(caseData) {
   const parts = [];
 
   if (caseData.receivedDate) {
@@ -107,4 +108,9 @@ export function assembleReport(caseData) {
   }
 
   return parts.join('\n\n');
+}
+
+export function assembleReport(caseData) {
+  if (caseData?.organ === 'endometrium') return assembleEndometrialReport(caseData);
+  return assembleBreastReport(caseData);
 }

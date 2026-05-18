@@ -160,6 +160,53 @@ export interface CaseData {
   updatedAt: string;
 }
 
+export interface EndometrialCaseData {
+  version: number;
+  organ: 'endometrium';
+  mode: string;
+  receivedDate: string | null;
+  signoutDate: string | null;
+  priorHistory: { clinicalHistory: string; previousBiopsyResult: string; radiologicFindings: string };
+  specimens: Specimen[];
+  cap: {
+    specimen: { procedure: string | null; integrity: string | null };
+    tumor: {
+      histologicType: string | null;
+      histologicGrade: string | null;
+      tumorSizeMm: number | null;
+      myometrialInvasion: string | null;
+      myometrialInvasionPercent: number | null;
+      myometrialComment: string;
+      adenomyosis: string | null;
+      uterineSerosal: string | null;
+      lowerUterineSegment: string | null;
+      cervicalInvolvement: string | null;
+      otherOrganInvolvement: string;
+      peritonealWashings: string | null;
+      lvi: string | null;
+      lviFoci: number | null;
+      fallopianTubes: string | null;
+      ovaries: string | null;
+      adnexalInvolvement: string | null;
+    };
+    margins: { status: string | null; closestMm: number | null; closestLocations: string[]; involvedLocations: string[] };
+    nodes: {
+      pelvis: { status: string | null; macroCount: number | null; microCount: number | null; itcCount: number | null; totalExamined: number | null; sentinelExamined: number | null; largestDepositMm: number | null; laterality: string[] };
+      paraAortic: { status: string | null; macroCount: number | null; microCount: number | null; itcCount: number | null; totalExamined: number | null; sentinelExamined: number | null; largestDepositMm: number | null; laterality: string[] };
+      nSuffix: string[];
+    };
+    metastasis: { sites: string[] };
+    stage: { ptCategory: string | null; pnCategory: string | null; pmCategory: string | null; figoStage2009: string | null; figoStage2023: string | null; yPrefix: boolean; rPrefix: boolean };
+    additionalFindings: string;
+    specialStudies: { biomarkersSource: string | null; er: string | null; pr: string | null; mmr: string | null; p53: string | null; representativeBlock: string };
+  };
+  ihc: IhcEntry[];
+  reportText: string;
+  updatedAt: string;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData;
+
 export interface Settings {
   provider: 'anthropic' | 'openai';
   claudeApiKey: string;

@@ -8,6 +8,7 @@
  */
 
 import { TOOL_SCHEMAS, SYSTEM_PROMPT, executeTool } from './agentTools.js';
+import { ENDO_TOOL_SCHEMAS, ENDO_SYSTEM_PROMPT, executeEndoTool } from './endometrial/agentTools.js';
 import {
   runAnthropicTurn,
   buildAnthropicToolResultMessage,
@@ -24,6 +25,11 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
   if (provider !== 'anthropic' && provider !== 'openai') {
     throw new Error(`Unsupported provider: ${provider}`);
   }
+
+  const isEndo = caseState?.organ === 'endometrium';
+  const tools   = isEndo ? ENDO_TOOL_SCHEMAS   : TOOL_SCHEMAS;
+  const sysPrompt = isEndo ? ENDO_SYSTEM_PROMPT : SYSTEM_PROMPT;
+  const execTool  = isEndo ? executeEndoTool    : executeTool;
 
   let currentCase = caseState;
   const toolEvents = [];
@@ -56,17 +62,17 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
       turn = await runAnthropicTurn({
         apiKey,
         model: model || 'claude-opus-4-7',
-        system: SYSTEM_PROMPT,
+        system: sysPrompt,
         messages: threadMessages,
-        tools: TOOL_SCHEMAS,
+        tools,
       });
     } else {
       turn = await runOpenAITurn({
         apiKey,
         model: model || 'gpt-4o',
-        system: SYSTEM_PROMPT,
+        system: sysPrompt,
         messages: threadMessages,
-        tools: TOOL_SCHEMAS,
+        tools,
       });
     }
 
@@ -84,7 +90,7 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
 
     const results = [];
     for (const tc of turn.toolCalls) {
-      const r = executeTool(tc.name, tc.input || {}, currentCase);
+      const r = execTool(tc.name, tc.input || {}, currentCase);
       if (r.error) {
         results.push({ error: r.error });
       } else {
