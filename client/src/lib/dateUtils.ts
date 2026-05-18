@@ -6,18 +6,24 @@ function toYMD(d: Date): string {
 }
 
 function nthWeekday(year: number, month: number, nth: number, weekday: number): Date {
+  if (!Number.isFinite(year)) throw new Error('nthWeekday: invalid year');
   const d = new Date(year, month - 1, 1);
   let count = 0;
-  while (true) {
+  for (let i = 0; i < 31; i++) {
     if (d.getDay() === weekday && ++count === nth) return new Date(d);
     d.setDate(d.getDate() + 1);
   }
+  throw new Error('nthWeekday: not found');
 }
 
 function lastWeekday(year: number, month: number, weekday: number): Date {
+  if (!Number.isFinite(year)) throw new Error('lastWeekday: invalid year');
   const d = new Date(year, month, 0); // last day of month
-  while (d.getDay() !== weekday) d.setDate(d.getDate() - 1);
-  return d;
+  for (let i = 0; i < 7; i++) {
+    if (d.getDay() === weekday) return d;
+    d.setDate(d.getDate() - 1);
+  }
+  throw new Error('lastWeekday: not found');
 }
 
 function observedDate(year: number, month: number, day: number): string {
@@ -45,7 +51,9 @@ function usFederalHolidays(year: number): Set<string> {
 }
 
 export function addBusinessDays(dateStr: string, days: number): Date {
-  const d = new Date(dateStr + 'T12:00:00');
+  const datePart = dateStr.split('T')[0].split(' ')[0];
+  const d = new Date(datePart + 'T12:00:00');
+  if (!Number.isFinite(d.getTime())) throw new Error(`Invalid date: ${dateStr}`);
   let added = 0;
   // Pre-compute holidays for the year(s) we'll traverse
   const holidays = new Set([
