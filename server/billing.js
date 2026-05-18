@@ -15,6 +15,9 @@
  */
 
 const SPECIMEN_RULES = [
+  // Endometrial / gynecologic
+  { match: /hysterectomy/i, cpt: '88309', label: 'Hysterectomy (neoplasm)' },
+  // Breast
   { match: /\bmastectomy\b/i, cpt: '88309', label: 'Mastectomy' },
   { match: /sentinel\s+lymph\s+node|\bSLN\b/i, cpt: '88307', label: 'Sentinel lymph node' },
   { match: /additional\s+(superior|inferior|anterior|posterior|medial|lateral|deep|superficial)\s+margin|additional\s+margin|re[- ]?excision/i, cpt: '88305', label: 'Additional margin' },

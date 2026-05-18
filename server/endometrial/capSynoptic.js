@@ -112,14 +112,69 @@ export function renderCapSynopticEndometrial(caseData) {
   }
 
   // pTNM
+  const PT_EXPLAIN = {
+    pT1a: 'tumor limited to endometrium or <50% myometrial invasion',
+    pT1b: '≥50% myometrial invasion',
+    pT2:  'cervical stromal invasion',
+    pT3a: 'uterine serosal involvement or adnexal spread',
+    pT3b: 'vaginal or parametrial involvement',
+    pT4:  'bladder or bowel mucosa invasion',
+  };
+  const PN_EXPLAIN = {
+    'pN0':      'no regional lymph node metastasis',
+    'pN0(i+)':  'isolated tumor cells only (≤0.2 mm)',
+    'pN1mi':    'micrometastasis (>0.2–2 mm) to pelvic nodes',
+    'pN1a':     'macrometastasis (>2 mm) to pelvic nodes',
+    'pN2mi':    'micrometastasis to para-aortic nodes',
+    'pN2a':     'macrometastasis (>2 mm) to para-aortic nodes',
+  };
+  const FIGO2023_EXPLAIN = {
+    'IA1':     'non-aggressive histological type; confined to endometrium or polyp',
+    'IA2':     'non-aggressive histological type; <50% myometrial invasion; no/focal LVSI',
+    'IA3':     'low-grade endometrioid; limited to uterus and ovary',
+    'IB':      'non-aggressive histological type; ≥50% myometrial invasion; no/focal LVSI',
+    'IC':      'aggressive histological type; confined to endometrium (no myometrial invasion)',
+    'IIA':     'non-aggressive histological type; cervical stromal invasion',
+    'IIB':     'non-aggressive histological type; substantial LVSI (≥5 foci)',
+    'IIC':     'aggressive histological type; any myometrial involvement',
+    'IIIA1':   'spread to ovary or fallopian tube',
+    'IIIA2':   'uterine subserosa or serosal involvement',
+    'IIIB1':   'vaginal or parametrial spread',
+    'IIIB2':   'pelvic peritoneal metastasis',
+    'IIIC1i':  'pelvic lymph node micrometastasis',
+    'IIIC1ii': 'pelvic lymph node macrometastasis',
+    'IIIC2i':  'para-aortic lymph node micrometastasis',
+    'IIIC2ii': 'para-aortic lymph node macrometastasis',
+    'IVA':     'bladder or bowel mucosa invasion',
+    'IVB':     'abdominal peritoneal metastasis beyond pelvis',
+    'IVC':     'distant metastasis (lungs, liver, brain, bone, or extra-abdominal lymph nodes)',
+  };
+
   const stgRows = [];
   if (stg.yPrefix) stgRows.push('Modified Classification: y (post-neoadjuvant therapy)');
   if (stg.rPrefix) stgRows.push('Modified Classification: r (recurrence)');
-  if (stg.ptCategory) stgRows.push(`pT Category: ${stg.ptCategory}`);
-  if (stg.pnCategory) stgRows.push(`pN Category: ${stg.pnCategory}`);
-  if (stg.pmCategory) stgRows.push(`pM Category: ${stg.pmCategory}`);
+  if (stg.ptCategory) {
+    const exp = PT_EXPLAIN[stg.ptCategory] || '';
+    stgRows.push(`pT Category: ${stg.ptCategory}${exp ? ` — ${exp}` : ''}`);
+  }
+  if (stg.pnCategory) {
+    const exp = PN_EXPLAIN[stg.pnCategory] || '';
+    stgRows.push(`pN Category: ${stg.pnCategory}${exp ? ` — ${exp}` : ''}`);
+  }
+  if (stg.pmCategory) {
+    const pmExp = /pM1/i.test(stg.pmCategory) ? ' — distant metastasis present' : '';
+    stgRows.push(`pM Category: ${stg.pmCategory}${pmExp}`);
+  }
   if (stg.figoStage2009) stgRows.push(`FIGO Stage (2009): ${stg.figoStage2009}`);
-  if (stg.figoStage2023) stgRows.push(`FIGO Stage (2023): ${stg.figoStage2023}`);
+  if (stg.figoStage2023) {
+    const fKey = String(stg.figoStage2023).trim().toUpperCase();
+    const fExp = /IICm/i.test(stg.figoStage2023)
+      ? 'p53 abnormal; any myometrial invasion; confined to corpus'
+      : /IAm/i.test(stg.figoStage2023)
+      ? 'POLE mutated; confined to corpus or with cervical extension'
+      : FIGO2023_EXPLAIN[fKey] || '';
+    stgRows.push(`FIGO Stage (2023): ${stg.figoStage2023}${fExp ? ` — ${fExp}` : ''}`);
+  }
   if (stgRows.length) parts.push(section('pTNM CLASSIFICATION (AJCC 8th Edition)', stgRows));
 
   // SPECIAL STUDIES
