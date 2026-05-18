@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { AnyCase, Settings } from '../lib/types';
 import { agentStep } from '../lib/api';
 import { VoiceInput } from './VoiceInput';
+import { signoutTarget } from '../lib/dateUtils';
 
 function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -130,6 +131,9 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
     }
   };
 
+  const c = caseState as any;
+  const target = signoutTarget(c.receivedDate);
+
   return (
     <aside className="agentpane">
       <h2>
@@ -141,6 +145,15 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
           ⚙
         </button>
       </h2>
+
+      {target && (
+        <div className={`signout-banner${target.overdue ? ' overdue' : ''}`}>
+          <span className="signout-banner-label">Sign-out target</span>
+          <span className="signout-banner-date">
+            {target.label}{target.overdue ? ' — OVERDUE' : ''}
+          </span>
+        </div>
+      )}
 
       <div className="chat">
         {chat.length === 0 && (

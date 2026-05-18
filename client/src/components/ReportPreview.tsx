@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AnyCase, CaseData, EndometrialCaseData } from '../lib/types';
 import { renderReport } from '../lib/api';
 import { downloadText, downloadJson, pickJsonFile } from '../lib/storage';
+import { signoutTarget } from '../lib/dateUtils';
 
 interface Props {
   caseState: AnyCase;
@@ -17,29 +18,6 @@ function v(x: unknown): string | null {
   return String(x);
 }
 
-function addBusinessDays(dateStr: string, days: number): Date {
-  const d = new Date(dateStr + 'T12:00:00'); // noon to avoid DST edge cases
-  let added = 0;
-  while (added < days) {
-    d.setDate(d.getDate() + 1);
-    if (d.getDay() !== 0 && d.getDay() !== 6) added++;
-  }
-  return d;
-}
-
-function signoutTarget(receivedDate: string | null): { label: string; overdue: boolean } | null {
-  if (!receivedDate) return null;
-  try {
-    const target = addBusinessDays(receivedDate, 4);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const overdue = target < today;
-    const label = target.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-    return { label, overdue };
-  } catch {
-    return null;
-  }
-}
 
 function Section({ title, rows }: { title: string; rows: RowItem[] }) {
   const visible = rows.filter(r => r.value != null && r.value !== '');
