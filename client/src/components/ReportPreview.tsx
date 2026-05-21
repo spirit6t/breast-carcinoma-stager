@@ -147,7 +147,7 @@ export function ReportPreview({ caseState, update }: Props) {
     return parts.length ? parts.join(' · ') : null;
   })();
 
-  const hasData = c.specimens.length > 0 || c.cap.specimen.procedure || c.cap.tumor.histologicType;
+  const hasData = c.specimens.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType;
   const target = signoutTarget(c.receivedDate);
 
   return (
