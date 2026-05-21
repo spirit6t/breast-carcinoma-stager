@@ -210,6 +210,7 @@ export interface PathologySpecimen {
   designation: string;
   specimenCategory: 'surgical' | 'cytology' | null;
   organ: string;
+  grossDescription: string;
   diagnosisLine: string;
   diagnosisLines: string[];
   comment: string;

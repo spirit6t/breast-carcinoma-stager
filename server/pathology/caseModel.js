@@ -33,8 +33,9 @@ export const emptySpecimen = () => ({
   designation: '',
   specimenCategory: null,  // 'surgical' | 'cytology' — auto-detected
   organ: '',               // extracted organ keyword for Airtable lookup
-  diagnosisLine: '',       // surgical: "ADENOCARCINOMA"
-  diagnosisLines: [],      // cytology: ["NEGATIVE FOR MALIGNANCY", "ALVEOLAR MACROPHAGES"]
+  grossDescription: '',    // verbatim gross description as dictated
+  diagnosisLine: '',       // surgical: "ADENOCARCINOMA" (legacy — use diagnosisLines)
+  diagnosisLines: [],      // array of bullet strings for all specimen types
   comment: '',
   commentSource: null,
   cpt: null,

@@ -24,13 +24,14 @@ export const PATHOLOGY_TOOL_SCHEMAS = [
   },
   {
     name: 'add_specimen',
-    description: 'Add or update a specimen. Use the VERBATIM designation exactly as stated by the pathologist. The specimen category (surgical vs cytology) is auto-detected from the designation. CPT is auto-suggested but can be overridden.',
+    description: 'Add or update a specimen. Use the VERBATIM designation exactly as stated by the pathologist. The specimen category (surgical vs cytology) is auto-detected from the designation. CPT is auto-suggested but can be overridden. If the user provides a gross description, store it verbatim in grossDescription.',
     input_schema: {
       type: 'object',
       required: ['letter', 'designation'],
       properties: {
         letter: { type: 'string', description: 'Specimen letter: A, B, C...' },
         designation: { type: 'string', description: 'Full verbatim designation, e.g. "LUNG, RIGHT UPPER LOBE, NODULE BIOPSY" or "THYROID, RIGHT LOBE, FINE NEEDLE ASPIRATION (ThinPrep & Cell block)"' },
+        grossDescription: { type: 'string', description: 'The verbatim gross description as dictated or typed by the pathologist, if provided.' },
         cptOverride: { type: 'string', description: 'Override auto-detected CPT code if needed' },
         cptAddons: { type: 'array', items: { type: 'string' }, description: 'Additional CPT codes (e.g. ["88108"] for cell block add-on)' },
       },
@@ -129,6 +130,7 @@ export async function executePathologyTool(name, args, caseData) {
         designation,
         specimenCategory: billing.category,
         organ: '',
+        grossDescription: args.grossDescription || '',
         diagnosisLine: '',
         diagnosisLines: [],
         comment: '',
@@ -190,11 +192,12 @@ export async function executePathologyTool(name, args, caseData) {
       if (idx === -1) return { error: `Specimen ${letter} not found — call add_specimen first` };
 
       const s = c.specimens[idx];
-      if (args.diagnosisLine  != null) s.diagnosisLine  = args.diagnosisLine;
-      if (args.diagnosisLines != null) s.diagnosisLines = args.diagnosisLines;
-      if (args.comment        != null) s.comment        = args.comment;
-      if (args.commentSource  != null) s.commentSource  = args.commentSource;
-      if (args.organ          != null) s.organ          = args.organ;
+      if (args.grossDescription != null) s.grossDescription = args.grossDescription;
+      if (args.diagnosisLine    != null) s.diagnosisLine    = args.diagnosisLine;
+      if (args.diagnosisLines   != null) s.diagnosisLines   = args.diagnosisLines;
+      if (args.comment          != null) s.comment          = args.comment;
+      if (args.commentSource    != null) s.commentSource    = args.commentSource;
+      if (args.organ            != null) s.organ            = args.organ;
 
       return { case: c, result: { letter, set: true } };
     }
@@ -239,6 +242,7 @@ export const PATHOLOGY_SYSTEM_PROMPT = `You are an expert surgical pathology and
 For each specimen the user describes:
 - Call add_specimen with the VERBATIM designation (letter + designation exactly as dictated).
   - The system auto-detects specimen category (surgical path vs cytology) and CPT from the designation.
+  - If the user also provides a gross description, pass it in grossDescription verbatim.
   - Examples of designations:
     - Surgical: "LUNG, RIGHT UPPER LOBE, NEEDLE CORE BIOPSY"
     - Cytology FNA: "THYROID, LEFT LOBE, FINE NEEDLE ASPIRATION (ThinPrep & Cell block)"
@@ -246,7 +250,19 @@ For each specimen the user describes:
     - Mixed: "LUNG, RUL, NODULE BIOPSY (with Touch prep)"
 
 ### 3. Diagnosis & Comment — FOR EACH SPECIMEN:
-a) Ask the pathologist for the diagnosis (a word or short phrase is fine, e.g. "adenocarcinoma", "benign follicular nodule", "negative for malignancy").
+
+**When the user provides a gross description instead of (or in addition to) a stated diagnosis:**
+- Read the gross description carefully and derive the most precise diagnostic line you can.
+- For typical gross-only benign/precancerous specimens, the gross description IS the primary data source.
+  - Polyp size, morphology, number → determines adenoma type and grade (e.g. "TUBULAR ADENOMA WITH LOW-GRADE DYSPLASIA")
+  - Cyst type, lining, contents → determines cyst diagnosis (e.g. "BENIGN FOLLICULAR CYST")
+  - Skin lesion morphology → determines likely dx (e.g. "COMPOUND MELANOCYTIC NEVUS")
+  - Cervical lesion → CIN grade, SCC, AIS, etc.
+- Derive the SHORT CAPS diagnostic line (what would appear in the report).
+- Use the derived diagnosis as the keyword for lookup_airtable_comment.
+- If the gross is ambiguous, make your best inference and note it to the pathologist.
+
+a) Obtain the diagnosis — either stated by the pathologist OR derived from gross description.
 b) IMMEDIATELY call lookup_airtable_comment with the diagnosis keyword and organ.
 c) If found (found: true): use the returned comment. Inform the user: "Found in PathPattern: [name]." Use that comment verbatim.
 d) If not found (found: false): generate a professional diagnostic comment yourself that includes:
@@ -257,11 +273,12 @@ d) If not found (found: false): generate a professional diagnostic comment yours
    Tell the user: "No PathPattern entry found — I've generated a comment. You can save it to Airtable after review."
 e) Call set_specimen_diagnosis with:
    - ALWAYS use diagnosisLines (array) — for BOTH surgical path AND cytology. Never use diagnosisLine.
-   - First element = main morphologic diagnosis in ALL CAPS, e.g. "ADENOCARCINOMA, MODERATELY DIFFERENTIATED"
+   - First element = main morphologic diagnosis in ALL CAPS, e.g. "TUBULAR ADENOMA WITH LOW-GRADE DYSPLASIA"
    - Add additional bullet strings for ancillary findings:
      • H. pylori status: "(NO) HELICOBACTER PYLORI IDENTIFIED WITH IMMUNOHISTOCHEMISTRY"
      • Special stain results: "PAS: NO ORGANISMS SEEN", "GMS: NEGATIVE FOR FUNGAL ELEMENTS"
-     • Dysplasia / malignancy: "NO EVIDENCE OF DYSPLASIA OR MALIGNANCY"
+     • Dysplasia / malignancy: "NO EVIDENCE OF DYSPLASIA OR MALIGNANCY" (always include for GI biopsies)
+     • Polyp completeness: "MARGINS FREE OF DYSPLASIA" or "MARGIN STATUS CANNOT BE ASSESSED"
      • Cytology: "ALVEOLAR MACROPHAGES AND BRONCHIAL CELLS", "NEGATIVE FOR MALIGNANCY"
    - Do NOT add "SEE COMMENT" to any bullet — the assembler adds it automatically to the first bullet.
    - Always set comment (paragraph text) and commentSource ('airtable' or 'ai').

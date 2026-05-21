@@ -68,6 +68,16 @@ export function assemblePathologyReport(caseData) {
 
   if (!specimens.length) return parts.join('\n\n') || '(No specimens added)';
 
+  // Gross description section — only rendered when at least one specimen has one
+  const specsWithGross = specimens.filter(s => s.grossDescription && s.grossDescription.trim());
+  if (specsWithGross.length) {
+    const grossLines = ['GROSS DESCRIPTION:'];
+    for (const s of specsWithGross) {
+      grossLines.push(`${s.letter}. ${upper(s.designation)}: ${s.grossDescription.trim()}`);
+    }
+    parts.push(grossLines.join('\n'));
+  }
+
   parts.push('FINAL DIAGNOSIS:');
   for (const s of specimens) {
     parts.push(renderSpecimen(s));
