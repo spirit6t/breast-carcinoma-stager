@@ -51,7 +51,7 @@ export const PATHOLOGY_TOOL_SCHEMAS = [
   },
   {
     name: 'set_specimen_diagnosis',
-    description: 'Set the final diagnosis for a specimen. ALWAYS use diagnosisLines (array) for ALL specimen types — surgical path AND cytology. Never use diagnosisLine. The first element is the main morphologic diagnosis; additional elements are ancillary findings (e.g. H. pylori result, special stain result, dysplasia/malignancy status). The assembler auto-appends ", SEE COMMENT" to the first bullet when a comment is present — do NOT add it yourself.',
+    description: 'Set the final diagnosis for a specimen. ALWAYS use diagnosisLines (array) for ALL specimen types — surgical path AND cytology. Never use diagnosisLine. The first element is the main morphologic diagnosis; additional elements are ancillary findings (e.g. H. pylori result, special stain result, dysplasia/malignancy status). The assembler auto-appends ", SEE COMMENT" to the first bullet when a comment is present — do NOT add it yourself. Comment is optional — only set it when a diagnostic comment is actually needed.',
     input_schema: {
       type: 'object',
       required: ['letter', 'diagnosisLines'],
@@ -276,12 +276,10 @@ For each specimen the user describes:
 a) Obtain the diagnosis — either stated by the pathologist OR derived from gross description.
 b) IMMEDIATELY call lookup_airtable_comment with the diagnosis keyword and organ.
 c) If found (found: true): use the returned comment. Inform the user: "Found in PathPattern: [name]." Use that comment verbatim.
-d) If not found (found: false): generate a professional diagnostic comment yourself that includes:
-   - Histologic/cytologic description appropriate to the diagnosis
-   - IHC panel with expected results (if applicable for that diagnosis)
-   - Special stains (PAS, GMS, AFB, mucicarmine, etc.) if relevant
-   - Any prognostic or clinical correlation comments
-   Tell the user: "No PathPattern entry found — I've generated a comment. You can save it to Airtable after review."
+d) If not found (found: false): ask the pathologist: "Would you like a diagnostic comment for this specimen, or leave it without one?"
+   - If yes / they want a comment: generate a professional comment that includes histologic/cytologic description, IHC panel with expected results if applicable, relevant special stains, and any prognostic/clinical correlation. Tell the user: "No PathPattern entry found — I've generated a comment. You can save it to Airtable after review."
+   - If no / they skip: proceed without a comment (leave comment empty).
+   Simple benign diagnoses (e.g. benign colonic mucosa, normal skin, benign fibrocystic change) often do NOT need a comment — follow the pathologist's lead.
 e) Call set_specimen_diagnosis with:
    - ALWAYS use diagnosisLines (array) — for BOTH surgical path AND cytology. Never use diagnosisLine.
    - First element = main morphologic diagnosis in ALL CAPS, e.g. "TUBULAR ADENOMA WITH LOW-GRADE DYSPLASIA"
@@ -291,8 +289,8 @@ e) Call set_specimen_diagnosis with:
      • Dysplasia / malignancy: "NO EVIDENCE OF DYSPLASIA OR MALIGNANCY" (always include for GI biopsies)
      • Polyp completeness: "MARGINS FREE OF DYSPLASIA" or "MARGIN STATUS CANNOT BE ASSESSED"
      • Cytology: "ALVEOLAR MACROPHAGES AND BRONCHIAL CELLS", "NEGATIVE FOR MALIGNANCY"
-   - Do NOT add "SEE COMMENT" to any bullet — the assembler adds it automatically to the first bullet.
-   - Always set comment (paragraph text) and commentSource ('airtable' or 'ai').
+   - Do NOT add "SEE COMMENT" to any bullet — the assembler adds it automatically to the first bullet when a comment is present.
+   - Set comment and commentSource only when a comment is actually provided; omit (leave empty) when no comment is needed.
    - Always set organ (e.g. "lung") for save-back capability.
    - **For carcinoma diagnoses** (any malignancy: invasive carcinoma, adenocarcinoma, SCC, DCIS, lymphoma, sarcoma, etc.):
      Set the markers field. Ask the pathologist: "Are biomarkers pending or available?"
