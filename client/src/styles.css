@@ -563,3 +563,49 @@ textarea.report {
 .signout-banner.overdue .signout-banner-date {
   color: var(--danger, #c62828);
 }
+
+/* ── Airtable save panel ──────────────────────────────────────────────── */
+.airtable-save-panel {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  background: #f8fbff;
+}
+.airtable-save-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.airtable-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.airtable-save-label {
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.airtable-save-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.airtable-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.airtable-save-ok { font-size: 12px; color: var(--ok, #2e7d32); font-weight: 600; }
+.airtable-save-err { font-size: 12px; color: var(--danger, #c62828); font-weight: 600; }

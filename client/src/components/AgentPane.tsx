@@ -1,8 +1,29 @@
 import { useRef, useState } from 'react';
-import type { AnyCase, Settings } from '../lib/types';
+import type { AnyCase, PathologySpecimen, Settings } from '../lib/types';
 import { agentStep } from '../lib/api';
 import { VoiceInput } from './VoiceInput';
 import { signoutTarget } from '../lib/dateUtils';
+
+const BASE_URL = import.meta.env.VITE_API_URL || '';
+
+async function saveCommentToAirtable(
+  name: string, commentText: string, organ: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const resp = await fetch(`${BASE_URL}/api/airtable/save-comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, commentText, note: organ }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      return { success: false, error: String(err?.error || resp.statusText) };
+    }
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: String(e) };
+  }
+}
 
 function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -75,6 +96,7 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
   const [history, setHistory] = useState<unknown[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedComments, setSavedComments] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const grow = (el: HTMLTextAreaElement) => {
@@ -209,6 +231,47 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
         </div>
         {error && <div className="warn" style={{ color: 'var(--danger)', marginTop: 6 }}>{error}</div>}
       </div>
+
+      {/* Save AI-generated comments to Airtable PathPattern */}
+      {c.organ === 'pathology' && (() => {
+        const aiSpecimens: PathologySpecimen[] = (c.specimens || []).filter(
+          (s: PathologySpecimen) => s.commentSource === 'ai' && s.comment
+        );
+        if (!aiSpecimens.length) return null;
+        return (
+          <div className="airtable-save-panel">
+            <div className="airtable-save-title">💾 Save to PathPattern</div>
+            {aiSpecimens.map((s: PathologySpecimen) => {
+              const key = s.letter;
+              const status = savedComments[key];
+              const label = `${s.organ || s.designation?.split(',')[0] || s.letter} — ${(s.diagnosisLine || (s.diagnosisLines || [])[0] || 'diagnosis')}`;
+              return (
+                <div key={key} className="airtable-save-row">
+                  <span className="airtable-save-label">{label}</span>
+                  {status === 'saved' ? (
+                    <span className="airtable-save-ok">✓ Saved</span>
+                  ) : status === 'error' ? (
+                    <span className="airtable-save-err">✗ Error</span>
+                  ) : (
+                    <button
+                      className="airtable-save-btn"
+                      disabled={status === 'saving'}
+                      onClick={async () => {
+                        setSavedComments(prev => ({ ...prev, [key]: 'saving' }));
+                        const name = `${(s.organ || '').toLowerCase()} ${(s.diagnosisLine || (s.diagnosisLines || [])[0] || '').toLowerCase()}`.trim();
+                        const result = await saveCommentToAirtable(name, s.comment, s.organ || '');
+                        setSavedComments(prev => ({ ...prev, [key]: result.success ? 'saved' : 'error' }));
+                      }}
+                    >
+                      {status === 'saving' ? 'Saving…' : 'Save to Airtable'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </aside>
   );
 }

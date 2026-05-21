@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AnyCase, CaseData, Settings } from './lib/types';
-import { createEmptyCase, createEmptyEndometrialCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
+import type { AnyCase, CaseData, PathologyCaseData, Settings } from './lib/types';
+import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
 import { autosaveCase, loadAutosavedCase, loadSettings, saveSettings } from './lib/storage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AgentPane } from './components/AgentPane';
 import { ReportPreview } from './components/ReportPreview';
 
-function OrganSelector({ onSelect }: { onSelect: (organ: 'breast' | 'endometrium') => void }) {
+type OrganType = 'breast' | 'endometrium' | 'pathology';
+
+function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
   return (
     <div className="organ-selector">
-      <h2>Select Cancer Type</h2>
+      <h2>Select Case Type</h2>
       <div className="organ-options">
         <div className="organ-card" onClick={() => onSelect('breast')}>
           <div className="organ-card-icon">🩺</div>
@@ -20,6 +22,11 @@ function OrganSelector({ onSelect }: { onSelect: (organ: 'breast' | 'endometrium
           <div className="organ-card-icon">🔬</div>
           <div className="organ-card-title">Endometrial Carcinoma</div>
           <div className="organ-card-desc">Total hysterectomy / BSO — AJCC 8 + FIGO 2009/2023 staging</div>
+        </div>
+        <div className="organ-card" onClick={() => onSelect('pathology')}>
+          <div className="organ-card-icon">🧫</div>
+          <div className="organ-card-title">Surgical Path / Cytology</div>
+          <div className="organ-card-desc">Any organ — surgical biopsies, FNA, BAL, effusions, resections + Airtable PathPattern lookup</div>
         </div>
       </div>
     </div>
@@ -36,14 +43,16 @@ export default function App() {
 
   // Auto-compute breast staging only
   useEffect(() => {
-    if (!caseState || (caseState as any).organ === 'endometrium') return;
+    const org = (caseState as any)?.organ;
+    if (!caseState || org === 'endometrium' || org === 'pathology') return;
     const bc = caseState as CaseData;
     const computed =
       bc.mode === 'excision-invasive'
         ? computeInvasiveStage(bc.cap)
         : computeDCISStage(bc.cap);
     setCaseState((prev) => {
-      if (!prev || (prev as any).organ === 'endometrium') return prev;
+      const prevOrg = (prev as any)?.organ;
+      if (!prev || prevOrg === 'endometrium' || prevOrg === 'pathology') return prev;
       const p = prev as CaseData;
       const s = p.cap.stage;
       if (s.ptCategory === computed.ptCategory && s.pnCategory === computed.pnCategory) return prev;
@@ -75,8 +84,12 @@ export default function App() {
     });
   };
 
-  const startNewCase = (organ: 'breast' | 'endometrium') => {
-    const c = organ === 'endometrium' ? createEmptyEndometrialCase() : createEmptyCase('excision-invasive');
+  const startNewCase = (organ: OrganType) => {
+    const c = organ === 'endometrium'
+      ? createEmptyEndometrialCase()
+      : organ === 'pathology'
+      ? createEmptyPathologyCase()
+      : createEmptyCase('excision-invasive');
     setCaseState(c);
     setSelectingOrgan(false);
   };
@@ -106,7 +119,11 @@ export default function App() {
   }, []);
 
   const organ = (caseState as any)?.organ;
-  const organLabel = organ === 'endometrium' ? 'Endometrial Carcinoma' : 'Breast Carcinoma';
+  const organLabel = organ === 'endometrium'
+    ? 'Endometrial Carcinoma'
+    : organ === 'pathology'
+    ? 'Surgical Pathology / Cytology'
+    : 'Breast Carcinoma';
 
   // Show organ selector if no case exists or user clicked New Case
   if (!caseState || selectingOrgan) {

@@ -8,6 +8,7 @@ import { createEmptyCase, MODES } from './caseModel.js';
 import { suggestSpecimenCpt, computeIhcBilling } from './billing.js';
 import { assembleReport } from './reportAssembler.js';
 import { runAgent } from './agent.js';
+import { saveDiagnosticComment } from './pathology/airtableClient.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -67,9 +68,18 @@ app.post('/api/agent/step', async (req, res) => {
   }
 });
 
-app.get('/api/health', (_req, res) =>
-  res.json({ ok: true, modes: Object.values(MODES), ajcc: '8' })
-);
+// Save AI-generated diagnostic comment to Airtable PathPattern
+app.post('/api/airtable/save-comment', async (req, res) => {
+  try {
+    const { name, commentText, note } = req.body || {};
+    if (!name || !commentText) return res.status(400).json({ error: 'name and commentText required' });
+    const result = await saveDiagnosticComment({ name, commentText, note });
+    res.json(result);
+  } catch (e) {
+    console.error('[airtable] save-comment error:', e);
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
 
 // SPA fallback — must come after all API routes
 if (process.env.NODE_ENV === 'production') {

@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -239,6 +239,21 @@ export function createEmptyEndometrialCase(): EndometrialCaseData {
       additionalFindings: '',
       specialStudies: { biomarkersSource: null, er: null, pr: null, mmr: null, p53: null, representativeBlock: '' },
     },
+    ihc: [],
+    reportText: '',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyPathologyCase(): PathologyCaseData {
+  return {
+    version: 1,
+    organ: 'pathology',
+    mode: 'pathology',
+    receivedDate: null,
+    signoutDate: null,
+    priorHistory: { clinicalHistory: '' },
+    specimens: [],
     ihc: [],
     reportText: '',
     updatedAt: new Date().toISOString(),

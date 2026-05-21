@@ -66,16 +66,17 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const isEndo = (caseState as any).organ === 'endometrium';
+  const isPathology = (caseState as any).organ === 'pathology';
 
   const saveDraft = () => {
-    const prefix = isEndo ? 'endo' : 'breast';
+    const prefix = isEndo ? 'endo' : isPathology ? 'pathology' : 'breast';
     downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
   const loadDraft = async () => {
     try {
       const data = (await pickJsonFile()) as AnyCase;
-      if (data?.cap) {
+      if ((data as any)?.cap || (data as any)?.organ === 'pathology') {
         update(() => data);
         setReportText(data.reportText || '');
       }
@@ -221,7 +222,25 @@ export function ReportPreview({ caseState, update }: Props) {
             )}
           </div>
 
-          {isEndo ? (
+          {isPathology ? (
+            <>
+              {v(c.priorHistory?.clinicalHistory) && (
+                <Section title="Clinical History" rows={[
+                  { label: 'History', value: v(c.priorHistory.clinicalHistory) },
+                ]} />
+              )}
+              {(c.specimens || []).map((s: any, i: number) => (
+                <Section key={i} title={`Specimen ${s.letter}`} rows={[
+                  { label: 'Designation', value: v(s.designation) },
+                  { label: 'Category', value: v(s.specimenCategory) },
+                  { label: 'Diagnosis', value: v(s.diagnosisLine || (s.diagnosisLines || []).join(' / ')) },
+                  { label: 'Comment source', value: v(s.commentSource) },
+                  { label: 'CPT', value: v(s.cpt) },
+                  { label: 'CPT add-ons', value: v((s.cptAddons || []).join(', ')) },
+                ]} />
+              ))}
+            </>
+          ) : isEndo ? (
             <>
               <Section title="Procedure" rows={[
                 { label: 'Procedure', value: v(ec?.cap.specimen.procedure) },

@@ -3,6 +3,7 @@ import { renderCapSynopticDCIS } from './cap/excisionDCIS.js';
 import { renderCapSynopticInvasive } from './cap/excisionInvasive.js';
 import { computeIhcBilling } from './billing.js';
 import { assembleEndometrialReport } from './endometrial/reportAssembler.js';
+import { assemblePathologyReport } from './pathology/reportAssembler.js';
 
 function renderClinicalInfo(caseData) {
   const h = caseData.priorHistory || {};
@@ -112,5 +113,6 @@ function assembleBreastReport(caseData) {
 
 export function assembleReport(caseData) {
   if (caseData?.organ === 'endometrium') return assembleEndometrialReport(caseData);
+  if (caseData?.organ === 'pathology')   return assemblePathologyReport(caseData);
   return assembleBreastReport(caseData);
 }

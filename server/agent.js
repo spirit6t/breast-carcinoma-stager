@@ -9,6 +9,7 @@
 
 import { TOOL_SCHEMAS, SYSTEM_PROMPT, executeTool } from './agentTools.js';
 import { ENDO_TOOL_SCHEMAS, ENDO_SYSTEM_PROMPT, executeEndoTool } from './endometrial/agentTools.js';
+import { PATHOLOGY_TOOL_SCHEMAS, PATHOLOGY_SYSTEM_PROMPT, executePathologyTool } from './pathology/agentTools.js';
 import {
   runAnthropicTurn,
   buildAnthropicToolResultMessage,
@@ -26,10 +27,12 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
     throw new Error(`Unsupported provider: ${provider}`);
   }
 
-  const isEndo = caseState?.organ === 'endometrium';
-  const tools   = isEndo ? ENDO_TOOL_SCHEMAS   : TOOL_SCHEMAS;
-  const sysPrompt = isEndo ? ENDO_SYSTEM_PROMPT : SYSTEM_PROMPT;
-  const execTool  = isEndo ? executeEndoTool    : executeTool;
+  const organ = caseState?.organ;
+  const isEndo     = organ === 'endometrium';
+  const isPathology = organ === 'pathology';
+  const tools     = isPathology ? PATHOLOGY_TOOL_SCHEMAS : isEndo ? ENDO_TOOL_SCHEMAS : TOOL_SCHEMAS;
+  const sysPrompt = isPathology ? PATHOLOGY_SYSTEM_PROMPT : isEndo ? ENDO_SYSTEM_PROMPT : SYSTEM_PROMPT;
+  const execTool  = isPathology ? executePathologyTool : isEndo ? executeEndoTool : executeTool;
 
   let currentCase = caseState;
   const toolEvents = [];
@@ -92,7 +95,7 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
     for (const tc of turn.toolCalls) {
       let r;
       try {
-        r = execTool(tc.name, tc.input || {}, currentCase);
+        r = await Promise.resolve(execTool(tc.name, tc.input || {}, currentCase));
       } catch (toolErr) {
         r = { error: String(toolErr?.message || toolErr) };
       }

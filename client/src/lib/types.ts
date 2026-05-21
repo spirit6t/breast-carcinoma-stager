@@ -205,7 +205,33 @@ export interface EndometrialCaseData {
   updatedAt: string;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData;
+export interface PathologySpecimen {
+  letter: string;
+  designation: string;
+  specimenCategory: 'surgical' | 'cytology' | null;
+  organ: string;
+  diagnosisLine: string;
+  diagnosisLines: string[];
+  comment: string;
+  commentSource: 'airtable' | 'ai' | 'manual' | null;
+  cpt: string | null;
+  cptAddons: string[];
+}
+
+export interface PathologyCaseData {
+  version: number;
+  organ: 'pathology';
+  mode: 'pathology';
+  receivedDate: string | null;
+  signoutDate: string | null;
+  priorHistory: { clinicalHistory: string };
+  specimens: PathologySpecimen[];
+  ihc: IhcEntry[];
+  reportText: string;
+  updatedAt: string;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';
