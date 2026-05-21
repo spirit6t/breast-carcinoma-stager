@@ -65,6 +65,16 @@ export const PATHOLOGY_TOOL_SCHEMAS = [
         comment: { type: 'string', description: 'The diagnostic comment paragraph (from Airtable or AI-generated)' },
         commentSource: { type: 'string', enum: ['airtable', 'ai', 'manual'], description: 'Source of the comment' },
         organ: { type: 'string', description: 'Organ keyword for Airtable save-back, e.g. "lung"' },
+        markers: {
+          type: 'object',
+          description: 'Carcinoma biomarker info. Set whenever a carcinoma diagnosis is rendered and markers are pending or available.',
+          properties: {
+            status: { type: 'string', enum: ['pending', 'available'], description: '"pending" = results not yet back; "available" = results in hand' },
+            list: { type: 'array', items: { type: 'string' }, description: 'Marker names, e.g. ["ER", "PR", "HER2", "KI-67"]' },
+            results: { type: 'string', description: 'Full result string when status is "available", e.g. "ER POSITIVE (90%), PR POSITIVE, HER2 NEGATIVE (1+), KI-67 25%"' },
+          },
+          required: ['status', 'list'],
+        },
       },
     },
   },
@@ -198,6 +208,7 @@ export async function executePathologyTool(name, args, caseData) {
       if (args.comment          != null) s.comment          = args.comment;
       if (args.commentSource    != null) s.commentSource    = args.commentSource;
       if (args.organ            != null) s.organ            = args.organ;
+      if (args.markers          != null) s.markers          = args.markers;
 
       return { case: c, result: { letter, set: true } };
     }
@@ -283,6 +294,12 @@ e) Call set_specimen_diagnosis with:
    - Do NOT add "SEE COMMENT" to any bullet — the assembler adds it automatically to the first bullet.
    - Always set comment (paragraph text) and commentSource ('airtable' or 'ai').
    - Always set organ (e.g. "lung") for save-back capability.
+   - **For carcinoma diagnoses** (any malignancy: invasive carcinoma, adenocarcinoma, SCC, DCIS, lymphoma, sarcoma, etc.):
+     Set the markers field. Ask the pathologist: "Are biomarkers pending or available?"
+     • If pending: set markers = { status: "pending", list: ["ER", "PR", "HER2", "KI-67"] } (or whatever markers apply to that tumor type)
+     • If available: set markers = { status: "available", list: [...], results: "ER POSITIVE (90%), PR NEGATIVE, HER2 NEGATIVE (1+), KI-67 25%" }
+     • If no markers ordered: omit the markers field (leave null).
+     The assembler will auto-render the appropriate bullet line — do NOT add a markers bullet to diagnosisLines yourself.
 
 ### 4. IHC (if performed)
 - Ask if any IHC stains were performed.
@@ -324,7 +341,25 @@ A. THYROID, LEFT LOBE, FNA:
 Comment: [paragraph]
 \`\`\`
 
-The assembler adds ", SEE COMMENT" to the first bullet automatically when a comment is present. Do NOT include it in diagnosisLines.
+Example (carcinoma — biomarkers pending):
+\`\`\`
+A. BREAST, RIGHT, CORE BIOPSY:
+      -     INVASIVE DUCTAL CARCINOMA, GRADE 2, SEE COMMENT
+      -     PENDING FOR BIOMARKERS (ER, PR, HER2, KI-67)
+
+Comment: [paragraph]
+\`\`\`
+
+Example (carcinoma — biomarkers available):
+\`\`\`
+A. BREAST, RIGHT, CORE BIOPSY:
+      -     INVASIVE DUCTAL CARCINOMA, GRADE 2, SEE COMMENT
+      -     ER POSITIVE (90%), PR POSITIVE, HER2 NEGATIVE (1+), KI-67 25%
+
+Comment: [paragraph]
+\`\`\`
+
+The assembler adds ", SEE COMMENT" to the first bullet automatically when a comment is present. Do NOT include it in diagnosisLines. The biomarker bullet is also rendered automatically from the markers field — do NOT add it to diagnosisLines.
 
 ## CPT CODING:
 The system auto-assigns CPT codes. Common codes:

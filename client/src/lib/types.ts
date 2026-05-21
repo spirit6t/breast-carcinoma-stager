@@ -215,6 +215,11 @@ export interface PathologySpecimen {
   diagnosisLines: string[];
   comment: string;
   commentSource: 'airtable' | 'ai' | 'manual' | null;
+  markers: {
+    status: 'pending' | 'available' | null;
+    list: string[];     // e.g. ["ER", "PR", "HER2", "KI-67"]
+    results: string;    // e.g. "ER POSITIVE (90%), PR POSITIVE, HER2 NEGATIVE (1+), KI-67 25%"
+  } | null;
   cpt: string | null;
   cptAddons: string[];
 }

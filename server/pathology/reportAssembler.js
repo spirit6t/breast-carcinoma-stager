@@ -43,6 +43,16 @@ function renderSpecimen(s) {
     lines.push(`      -     ${upper(dl)}`);
   }
 
+  // Biomarker bullet — auto-injected after diagnosis lines
+  const m = s.markers;
+  if (m && m.status && Array.isArray(m.list) && m.list.length) {
+    if (m.status === 'pending') {
+      lines.push(`      -     PENDING FOR BIOMARKERS (${m.list.map(x => x.toUpperCase()).join(', ')})`);
+    } else if (m.status === 'available' && m.results && m.results.trim()) {
+      lines.push(`      -     ${upper(m.results.trim())}`);
+    }
+  }
+
   if (hasComment) {
     lines.push('');
     lines.push(`Comment: ${s.comment.trim()}`);

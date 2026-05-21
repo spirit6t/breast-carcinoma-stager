@@ -38,6 +38,7 @@ export const emptySpecimen = () => ({
   diagnosisLines: [],      // array of bullet strings for all specimen types
   comment: '',
   commentSource: null,
+  markers: null,           // { status: 'pending'|'available', list: [], results: '' }
   cpt: null,
   cptAddons: [],
 });
