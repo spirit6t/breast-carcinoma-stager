@@ -245,9 +245,8 @@ export const PATHOLOGY_SYSTEM_PROMPT = `You are an expert surgical pathology and
 ## WORKFLOW — follow this exact order:
 
 ### 1. Intake
-- Ask for the received date (if not provided).
-- Ask for clinical history / indication.
-- Call set_intake with the information.
+- Ask for clinical history / indication only. Do NOT ask for a received date — it is not relevant for surgical path / cytology cases.
+- Call set_intake with the clinical history.
 
 ### 2. Specimens
 For each specimen the user describes:
