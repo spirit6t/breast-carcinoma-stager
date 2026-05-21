@@ -94,6 +94,17 @@ export const PATHOLOGY_TOOL_SCHEMAS = [
     },
   },
   {
+    name: 'set_case_comment',
+    description: 'Set a single combined comment for the entire case. Used for cytology cases where one comprehensive comment covers all specimens rather than per-specimen comments.',
+    input_schema: {
+      type: 'object',
+      required: ['comment'],
+      properties: {
+        comment: { type: 'string', description: 'Comprehensive comment covering all cytology specimens in the case.' },
+      },
+    },
+  },
+  {
     name: 'request_clarification',
     description: 'Ask the pathologist for missing or ambiguous information.',
     input_schema: {
@@ -225,6 +236,11 @@ export async function executePathologyTool(name, args, caseData) {
       return { case: c, result: { added: entry } };
     }
 
+    case 'set_case_comment': {
+      c.caseComment = args.comment || '';
+      return { case: c, result: { ok: true } };
+    }
+
     case 'request_clarification': {
       return { case: c, result: { ask: { field: args.field, question: args.question } } };
     }
@@ -253,11 +269,13 @@ For each specimen the user describes:
 - Call add_specimen with the VERBATIM designation (letter + designation exactly as dictated).
   - The system auto-detects specimen category (surgical path vs cytology) and CPT from the designation.
   - If the user also provides a gross description, pass it in grossDescription verbatim.
-  - Examples of designations:
-    - Surgical: "LUNG, RIGHT UPPER LOBE, NEEDLE CORE BIOPSY"
-    - Cytology FNA: "THYROID, LEFT LOBE, FINE NEEDLE ASPIRATION (ThinPrep & Cell block)"
-    - Cytology fluid: "PLEURAL FLUID, RIGHT, THORACENTESIS (ThinPrep & cell block)"
-    - Mixed: "LUNG, RUL, NODULE BIOPSY (with Touch prep)"
+  - **For cytology specimens always include the preparation type in parentheses in the designation**, e.g.:
+    - "LUNG, LEFT UPPER LOBE, BRONCHOALVEOLAR LAVAGE (ThinPrep & cell block)"
+    - "THYROID, LEFT LOBE, FINE NEEDLE ASPIRATION (ThinPrep & cell block)"
+    - "PLEURAL FLUID, RIGHT, THORACENTESIS (ThinPrep & cell block)"
+    - "BILE DUCT, BILIARY BRUSHING (ThinPrep)"
+    - "LUNG, RIGHT LOWER LOBE, BRONCHIAL BRUSHING (ThinPrep)"
+    - Surgical: "LUNG, RIGHT UPPER LOBE, NEEDLE CORE BIOPSY" (no prep type needed)
 
 ### 3. Diagnosis & Comment — FOR EACH SPECIMEN:
 
@@ -281,16 +299,29 @@ d) If not found (found: false): ask the pathologist: "Would you like a diagnosti
    Simple benign diagnoses (e.g. benign colonic mucosa, normal skin, benign fibrocystic change) often do NOT need a comment — follow the pathologist's lead.
 e) Call set_specimen_diagnosis with:
    - ALWAYS use diagnosisLines (array) — for BOTH surgical path AND cytology. Never use diagnosisLine.
-   - First element = main morphologic diagnosis in ALL CAPS, e.g. "TUBULAR ADENOMA WITH LOW-GRADE DYSPLASIA"
-   - Add additional bullet strings for ancillary findings:
-     • H. pylori status: "(NO) HELICOBACTER PYLORI IDENTIFIED WITH IMMUNOHISTOCHEMISTRY"
-     • Special stain results: "PAS: NO ORGANISMS SEEN", "GMS: NEGATIVE FOR FUNGAL ELEMENTS"
-     • Dysplasia / malignancy: "NO EVIDENCE OF DYSPLASIA OR MALIGNANCY" (always include for GI biopsies)
-     • Polyp completeness: "MARGINS FREE OF DYSPLASIA" or "MARGIN STATUS CANNOT BE ASSESSED"
-     • Cytology: "ALVEOLAR MACROPHAGES AND BRONCHIAL CELLS", "NEGATIVE FOR MALIGNANCY"
-   - Do NOT add "SEE COMMENT" to any bullet — the assembler adds it automatically to the first bullet when a comment is present.
-   - Set comment and commentSource only when a comment is actually provided; omit (leave empty) when no comment is needed.
+
+   **CYTOLOGY bullet order** (brushings, washings, BAL, FNA, effusions, etc.):
+   - diagnosisLines[0] = adequacy / malignancy statement FIRST: "NEGATIVE FOR MALIGNANCY", "POSITIVE FOR MALIGNANCY", "ATYPICAL CELLS PRESENT", "SUSPICIOUS FOR MALIGNANCY"
+   - diagnosisLines[1] = descriptive cellular diagnosis: "ABUNDANT NEUTROPHILS AND CELLULAR DEBRIS", "BRONCHIAL CELLS AND ALVEOLAR MACROPHAGES", "BENIGN FOLLICULAR NODULE"
+   - diagnosisLines[2+] = additional lines as needed (Bethesda category, special findings)
+   - Do NOT set a per-specimen comment for cytology specimens — use set_case_comment instead (see step 3f).
+
+   **SURGICAL PATH bullet order**:
+   - diagnosisLines[0] = main morphologic diagnosis: "TUBULAR ADENOMA WITH LOW-GRADE DYSPLASIA", "ADENOCARCINOMA, MODERATELY DIFFERENTIATED"
+   - diagnosisLines[1+] = ancillary findings: H. pylori, special stains, dysplasia/malignancy status
+   - Set comment and commentSource when a per-specimen comment is needed.
+
+   - Do NOT add "SEE COMMENT" to any bullet — the assembler places it automatically.
    - Always set organ (e.g. "lung") for save-back capability.
+
+f) **For cytology cases — combined case comment**:
+   After ALL cytology specimens have been diagnosed, write ONE comprehensive comment covering all specimens together using set_case_comment. This single comment replaces individual per-specimen comments. Include:
+   - Cytologic description / cellularity for each specimen
+   - Relevant findings, background elements, special stains if applicable
+   - Clinical correlation and recommendations
+   Do NOT call set_case_comment until all cytology specimens are processed.
+   For mixed cases (some surgical, some cytology): surgical specimens keep per-specimen comments; use set_case_comment only for the cytology portion.
+
    - **For carcinoma diagnoses** (any malignancy: invasive carcinoma, adenocarcinoma, SCC, DCIS, lymphoma, sarcoma, etc.):
      Set the markers field. Ask the pathologist: "Are biomarkers pending or available?"
      • If pending: set markers = { status: "pending", list: ["ER", "PR", "HER2", "KI-67"] } (or whatever markers apply to that tumor type)
@@ -328,14 +359,17 @@ A. STOMACH, ANTRUM, BIOPSY:
 Comment: [paragraph]
 \`\`\`
 
-Example (cytology FNA):
+Example (cytology — single or multiple specimens, combined comment at bottom):
 \`\`\`
-A. THYROID, LEFT LOBE, FNA:
-      -     NEGATIVE FOR MALIGNANCY, SEE COMMENT
-      -     BENIGN FOLLICULAR NODULE
-      -     BETHESDA CATEGORY II
+A. LUNG, LEFT UPPER LOBE, BRONCHOALVEOLAR LAVAGE (ThinPrep & cell block):
+      -     NEGATIVE FOR MALIGNANCY
+      -     ABUNDANT NEUTROPHILS AND CELLULAR DEBRIS, SEE COMMENT
 
-Comment: [paragraph]
+B. BILE DUCT, BILIARY BRUSHING (ThinPrep):
+      -     NEGATIVE FOR MALIGNANCY
+      -     DUCTAL EPITHELIAL CELLS, SEE COMMENT
+
+Comment: [one comprehensive comment covering both A and B]
 \`\`\`
 
 Example (carcinoma — biomarkers pending):

@@ -17,25 +17,42 @@ function upper(s) {
   return s ? String(s).toUpperCase() : '';
 }
 
-function renderSpecimen(s) {
+/**
+ * Render a single specimen block.
+ * hasCaseComment: true when the case has a combined cytology comment — used
+ *   to suppress per-specimen comment output and to place SEE COMMENT on the
+ *   descriptive (last) bullet rather than the adequacy (first) bullet.
+ */
+function renderSpecimen(s, hasCaseComment) {
   const lines = [];
-  const designation = upper(s.designation || '');
+  const isCytology = s.specimenCategory === 'cytology';
 
+  // Preserve prep-type parenthetical in its original case; uppercase the rest
+  const designation = (s.designation || '').replace(/^([^(]+)/, m => m.toUpperCase());
   lines.push(`${s.letter}. ${designation}:`);
 
-  // Collect all diagnosis lines (diagnosisLines takes priority; fall back to diagnosisLine)
-  const hasComment = s.comment && s.comment.trim();
+  // Collect diagnosis lines
   let dxLines = Array.isArray(s.diagnosisLines) && s.diagnosisLines.length
-    ? s.diagnosisLines
+    ? [...s.diagnosisLines]
     : s.diagnosisLine
     ? [s.diagnosisLine]
     : [];
 
-  // Append SEE COMMENT to the first line if there is a comment and it isn't already there
-  if (hasComment && dxLines.length > 0) {
-    const first = dxLines[0];
-    if (!/SEE COMMENT/i.test(first)) {
-      dxLines = [`${first}, SEE COMMENT`, ...dxLines.slice(1)];
+  const perSpecimenComment = !isCytology && s.comment && s.comment.trim();
+  const needsSeeComment = perSpecimenComment || (isCytology && hasCaseComment);
+
+  if (needsSeeComment && dxLines.length > 0) {
+    if (isCytology) {
+      // SEE COMMENT goes on the last (descriptive) bullet, not the adequacy line
+      const lastIdx = dxLines.length - 1;
+      if (!/SEE COMMENT/i.test(dxLines[lastIdx])) {
+        dxLines[lastIdx] = `${dxLines[lastIdx]}, SEE COMMENT`;
+      }
+    } else {
+      // Surgical: SEE COMMENT on the first (main diagnosis) bullet
+      if (!/SEE COMMENT/i.test(dxLines[0])) {
+        dxLines[0] = `${dxLines[0]}, SEE COMMENT`;
+      }
     }
   }
 
@@ -53,7 +70,8 @@ function renderSpecimen(s) {
     }
   }
 
-  if (hasComment) {
+  // Per-specimen comment for surgical path only
+  if (perSpecimenComment) {
     lines.push('');
     lines.push(`Comment: ${s.comment.trim()}`);
   }
@@ -88,9 +106,16 @@ export function assemblePathologyReport(caseData) {
     parts.push(grossLines.join('\n'));
   }
 
+  const hasCaseComment = Boolean(caseData.caseComment && caseData.caseComment.trim());
+
   parts.push('FINAL DIAGNOSIS:');
   for (const s of specimens) {
-    parts.push(renderSpecimen(s));
+    parts.push(renderSpecimen(s, hasCaseComment));
+  }
+
+  // Combined cytology comment — rendered once after all specimens
+  if (hasCaseComment) {
+    parts.push(`Comment: ${caseData.caseComment.trim()}`);
   }
 
   // IHC section

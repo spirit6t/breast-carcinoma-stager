@@ -13,6 +13,7 @@ export function createEmptyPathologyCase() {
     priorHistory: { clinicalHistory: '' },
     specimens: [],   // PathologySpecimen[]
     ihc: [],
+    caseComment: '', // combined cytology comment rendered once at end of Final Diagnosis
     reportText: '',
     updatedAt: new Date().toISOString(),
   };
