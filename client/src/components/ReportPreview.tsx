@@ -86,7 +86,7 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const c = caseState as any;
-  const bc = isEndo ? null : (caseState as CaseData);
+  const bc = (isEndo || isPathology) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens.length
