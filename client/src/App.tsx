@@ -152,7 +152,11 @@ export default function App() {
       <header className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="back-btn" onClick={() => setSelectingOrgan(true)} title="Back to dashboard">← Dashboard</button>
-          <h1 style={{ margin: 0 }}>Carcinoma Stager — <span style={{ color: 'var(--accent)', fontWeight: 400 }}>{organLabel}</span></h1>
+          <h1 style={{ margin: 0 }}>
+            {organ === 'pathology'
+              ? <span style={{ color: 'var(--accent)', fontWeight: 400 }}>{organLabel}</span>
+              : <>Carcinoma Stager — <span style={{ color: 'var(--accent)', fontWeight: 400 }}>{organLabel}</span></>}
+          </h1>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span className="status">
