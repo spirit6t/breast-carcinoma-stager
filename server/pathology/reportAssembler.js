@@ -1,14 +1,13 @@
 /**
  * Report assembler for the general pathology / cytology module.
  *
- * Surgical path format:
- *   A. DESIGNATION: DIAGNOSIS, see comment.
- *   Comment: [paragraph]
+ * All specimens use bullet-dash format:
  *
- * Cytology format:
  *   A. DESIGNATION:
- *         -     DIAGNOSIS LINE 1
- *         -     DIAGNOSIS LINE 2
+ *         -     MAIN DIAGNOSIS, SEE COMMENT
+ *         -     ANCILLARY LINE (e.g. H. PYLORI, DYSPLASIA STATUS)
+ *         -     ADDITIONAL LINE
+ *
  *   Comment: [paragraph if present]
  */
 
@@ -21,33 +20,32 @@ function upper(s) {
 function renderSpecimen(s) {
   const lines = [];
   const designation = upper(s.designation || '');
-  const cat = s.specimenCategory || 'surgical';
 
-  if (cat === 'cytology') {
-    // Cytology: header then bullet lines
-    lines.push(`${s.letter}. ${designation}:`);
-    const dxLines = Array.isArray(s.diagnosisLines) ? s.diagnosisLines : [];
-    if (dxLines.length) {
-      for (const dl of dxLines) {
-        lines.push(`      -     ${upper(dl)}`);
-      }
-    } else if (s.diagnosisLine) {
-      lines.push(`      -     ${upper(s.diagnosisLine)}`);
+  lines.push(`${s.letter}. ${designation}:`);
+
+  // Collect all diagnosis lines (diagnosisLines takes priority; fall back to diagnosisLine)
+  const hasComment = s.comment && s.comment.trim();
+  let dxLines = Array.isArray(s.diagnosisLines) && s.diagnosisLines.length
+    ? s.diagnosisLines
+    : s.diagnosisLine
+    ? [s.diagnosisLine]
+    : [];
+
+  // Append SEE COMMENT to the first line if there is a comment and it isn't already there
+  if (hasComment && dxLines.length > 0) {
+    const first = dxLines[0];
+    if (!/SEE COMMENT/i.test(first)) {
+      dxLines = [`${first}, SEE COMMENT`, ...dxLines.slice(1)];
     }
-    if (s.comment && s.comment.trim()) {
-      lines.push('');
-      lines.push(`Comment: ${s.comment.trim()}`);
-    }
-  } else {
-    // Surgical path: "DESIGNATION: DIAGNOSIS, see comment."
-    const dx = upper(s.diagnosisLine || (s.diagnosisLines || [])[0] || '');
-    const hasComment = s.comment && s.comment.trim();
-    const seeComment = hasComment ? ', see comment.' : '.';
-    lines.push(`${s.letter}. ${designation}: ${dx}${seeComment}`);
-    if (hasComment) {
-      lines.push('');
-      lines.push(`Comment: ${s.comment.trim()}`);
-    }
+  }
+
+  for (const dl of dxLines) {
+    lines.push(`      -     ${upper(dl)}`);
+  }
+
+  if (hasComment) {
+    lines.push('');
+    lines.push(`Comment: ${s.comment.trim()}`);
   }
 
   return lines.join('\n');

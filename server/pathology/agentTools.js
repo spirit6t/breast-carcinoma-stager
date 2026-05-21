@@ -50,17 +50,16 @@ export const PATHOLOGY_TOOL_SCHEMAS = [
   },
   {
     name: 'set_specimen_diagnosis',
-    description: 'Set the final diagnosis for a specimen. For surgical path, provide a single diagnosisLine (e.g. "ADENOCARCINOMA"). For cytology, provide diagnosisLines (array of bullet strings). Always set the comment from Airtable or AI-generated text.',
+    description: 'Set the final diagnosis for a specimen. ALWAYS use diagnosisLines (array) for ALL specimen types — surgical path AND cytology. Never use diagnosisLine. The first element is the main morphologic diagnosis; additional elements are ancillary findings (e.g. H. pylori result, special stain result, dysplasia/malignancy status). The assembler auto-appends ", SEE COMMENT" to the first bullet when a comment is present — do NOT add it yourself.',
     input_schema: {
       type: 'object',
-      required: ['letter'],
+      required: ['letter', 'diagnosisLines'],
       properties: {
         letter: { type: 'string' },
-        diagnosisLine: { type: 'string', description: 'For surgical path: the main diagnosis line, e.g. "ADENOCARCINOMA"' },
         diagnosisLines: {
           type: 'array',
           items: { type: 'string' },
-          description: 'For cytology: array of bullet-point diagnosis strings, e.g. ["NEGATIVE FOR MALIGNANCY", "ALVEOLAR MACROPHAGES AND BLOOD"]',
+          description: 'Array of ALL diagnosis bullet strings. First = main diagnosis (e.g. "GASTRIC ANTRAL MUCOSA WITH CHRONIC GASTRITIS"). Additional bullets for ancillary findings, e.g. "(NO) HELICOBACTER PYLORI IDENTIFIED WITH IMMUNOHISTOCHEMISTRY", "NO EVIDENCE OF DYSPLASIA OR MALIGNANCY". ALL CAPS.',
         },
         comment: { type: 'string', description: 'The diagnostic comment paragraph (from Airtable or AI-generated)' },
         commentSource: { type: 'string', enum: ['airtable', 'ai', 'manual'], description: 'Source of the comment' },
@@ -257,8 +256,15 @@ d) If not found (found: false): generate a professional diagnostic comment yours
    - Any prognostic or clinical correlation comments
    Tell the user: "No PathPattern entry found — I've generated a comment. You can save it to Airtable after review."
 e) Call set_specimen_diagnosis with:
-   - For SURGICAL PATH: diagnosisLine (e.g. "ADENOCARCINOMA"), comment, commentSource
-   - For CYTOLOGY: diagnosisLines (array of bullet strings, e.g. ["NEGATIVE FOR MALIGNANCY", "ALVEOLAR MACROPHAGES AND BRONCHIAL CELLS"]), comment (if any), commentSource
+   - ALWAYS use diagnosisLines (array) — for BOTH surgical path AND cytology. Never use diagnosisLine.
+   - First element = main morphologic diagnosis in ALL CAPS, e.g. "ADENOCARCINOMA, MODERATELY DIFFERENTIATED"
+   - Add additional bullet strings for ancillary findings:
+     • H. pylori status: "(NO) HELICOBACTER PYLORI IDENTIFIED WITH IMMUNOHISTOCHEMISTRY"
+     • Special stain results: "PAS: NO ORGANISMS SEEN", "GMS: NEGATIVE FOR FUNGAL ELEMENTS"
+     • Dysplasia / malignancy: "NO EVIDENCE OF DYSPLASIA OR MALIGNANCY"
+     • Cytology: "ALVEOLAR MACROPHAGES AND BRONCHIAL CELLS", "NEGATIVE FOR MALIGNANCY"
+   - Do NOT add "SEE COMMENT" to any bullet — the assembler adds it automatically to the first bullet.
+   - Always set comment (paragraph text) and commentSource ('airtable' or 'ai').
    - Always set organ (e.g. "lung") for save-back capability.
 
 ### 4. IHC (if performed)
@@ -270,23 +276,38 @@ e) Call set_specimen_diagnosis with:
 - Present the formatted report.
 - For any specimen where commentSource is 'ai', offer: "Would you like to save the AI-generated comment for [specimen organ/diagnosis] to Airtable PathPattern for future reuse?"
 
-## OUTPUT FORMATS:
+## OUTPUT FORMAT — ALL specimen types use bullet-dash:
 
-### Surgical path specimen:
 \`\`\`
-A. DESIGNATION: DIAGNOSIS, see comment.
+A. DESIGNATION:
+      -     MAIN DIAGNOSIS, SEE COMMENT
+      -     ANCILLARY LINE (e.g. H. PYLORI STATUS, SPECIAL STAIN RESULT)
+      -     DYSPLASIA / MALIGNANCY STATUS LINE
 
 Comment: [paragraph text]
 \`\`\`
 
-### Cytology specimen:
+Example (gastric biopsy):
 \`\`\`
-A. DESIGNATION:
-      -     DIAGNOSIS LINE 1
-      -     DIAGNOSIS LINE 2
+A. STOMACH, ANTRUM, BIOPSY:
+      -     GASTRIC ANTRAL MUCOSA WITH CHRONIC GASTRITIS AND COMPLETE-TYPE INTESTINAL METAPLASIA, SEE COMMENT
+      -     (NO) HELICOBACTER PYLORI IDENTIFIED WITH IMMUNOHISTOCHEMISTRY
+      -     NO EVIDENCE OF DYSPLASIA OR MALIGNANCY
 
-Comment: [paragraph if present]
+Comment: [paragraph]
 \`\`\`
+
+Example (cytology FNA):
+\`\`\`
+A. THYROID, LEFT LOBE, FNA:
+      -     NEGATIVE FOR MALIGNANCY, SEE COMMENT
+      -     BENIGN FOLLICULAR NODULE
+      -     BETHESDA CATEGORY II
+
+Comment: [paragraph]
+\`\`\`
+
+The assembler adds ", SEE COMMENT" to the first bullet automatically when a comment is present. Do NOT include it in diagnosisLines.
 
 ## CPT CODING:
 The system auto-assigns CPT codes. Common codes:
