@@ -7,6 +7,7 @@
 
 import { detectSpecimenCategory, suggestPathologyCpt } from './cptBilling.js';
 import { lookupDiagnosticComment } from './airtableClient.js';
+import { suggestMipsMeasures, MIPS_MEASURES } from './mipsBilling.js';
 
 // ── Tool schemas ──────────────────────────────────────────────────────────────
 
@@ -90,6 +91,20 @@ export const PATHOLOGY_TOOL_SCHEMAS = [
         antibody: { type: 'string' },
         finding: { type: 'string' },
         sentence: { type: 'string', description: 'Clean one-sentence IHC comment' },
+      },
+    },
+  },
+  {
+    name: 'set_mips_code',
+    description: 'Record the confirmed MIPS quality code for a specimen. Call once per applicable measure per specimen after the pathologist confirms the performance status.',
+    input_schema: {
+      type: 'object',
+      required: ['letter', 'measureNumber', 'code'],
+      properties: {
+        letter:        { type: 'string', description: 'Specimen letter' },
+        measureNumber: { type: 'string', description: 'MIPS measure number, e.g. "491", "249", "395"' },
+        code:          { type: 'string', description: 'The confirmed quality code, e.g. "M1193", "G9421", "3126F"' },
+        codeLabel:     { type: 'string', description: 'Human-readable label for the code' },
       },
     },
   },
@@ -232,7 +247,24 @@ export async function executePathologyTool(name, args, caseData) {
       if (args.organ            != null) s.organ            = args.organ;
       if (args.markers          != null) s.markers          = args.markers;
 
-      return { case: c, result: { letter, set: true } };
+      // Auto-suggest MIPS measures based on updated specimen
+      const mipsSuggestions = suggestMipsMeasures(c.specimens[idx]);
+
+      return {
+        case: c,
+        result: {
+          letter,
+          set: true,
+          mipsSuggestions: mipsSuggestions.map(s => ({
+            measureNumber: s.measureNumber,
+            title: s.measure.title,
+            defaultCode: s.defaultCode,
+            defaultCodeLabel: s.measure.codes[Object.keys(s.measure.codes).find(k => s.measure.codes[k].code === s.defaultCode)]?.label || '',
+            allCodes: s.measure.codes,
+            note: s.measure.note || '',
+          })),
+        },
+      };
     }
 
     case 'add_ihc_entry': {
@@ -245,6 +277,19 @@ export async function executePathologyTool(name, args, caseData) {
       };
       c.ihc = [...(c.ihc || []), entry];
       return { case: c, result: { added: entry } };
+    }
+
+    case 'set_mips_code': {
+      const letter = String(args.letter || '').toUpperCase();
+      const idx = (c.specimens || []).findIndex(s => s.letter === letter);
+      if (idx === -1) return { error: `Specimen ${letter} not found` };
+      const existing = (c.specimens[idx].mips || []).filter(m => m.measureNumber !== args.measureNumber);
+      c.specimens[idx].mips = [...existing, {
+        measureNumber: args.measureNumber,
+        code: args.code,
+        codeLabel: args.codeLabel || '',
+      }];
+      return { case: c, result: { ok: true, letter, measureNumber: args.measureNumber, code: args.code } };
     }
 
     case 'set_ihc_modifier': {
@@ -345,7 +390,30 @@ f) **For cytology cases — combined case comment**:
      • If no markers ordered: omit the markers field (leave null).
      The assembler will auto-render the appropriate bullet line — do NOT add a markers bullet to diagnosisLines yourself.
 
-### 4. IHC (if performed)
+### 4. MIPS Quality Measures
+After set_specimen_diagnosis, check the mipsSuggestions returned in the result.
+For each suggested measure:
+- Announce: "📋 MIPS Measure #[number] — [title] applies to this specimen."
+- State the default performance code and what it means.
+- Ask the pathologist to confirm: "Use [default code] (Performance Met), or specify a different status?"
+  - Performance Met (default) → use met code
+  - Performance Not Met → use notMet code
+  - Exception (medical reason) → use exception code
+  - Exclusion → use exclusion code
+- Call set_mips_code with the confirmed code.
+
+**Measures and triggers (for reference):**
+- **#491 MMR/MSI** — colorectal, endometrial, gastroesophageal, or small bowel carcinoma (88305/88307/88309). Default M1193. Exclusion M1192 for Lynch Syndrome.
+- **#249 Barrett's** — esophageal biopsy with Barrett's mucosa (88305). Default 3126F (dysplasia statement present).
+- **#395 Lung Biopsy** — NSCLC biopsy/cytology (88305/88104/88108/88112/88173; NOT 88307). Default G9421.
+- **#396 Lung Resection** — NSCLC resection (88309 only; 88307 wedge is EXEMPT). Default G9418 (pTpN + histologic type).
+- **#440 Skin BCC/SCC/Melanoma** — skin cancer biopsy (88304/88305). Default G9785 (auto — report sent ≤7 days).
+- **#397 Melanoma** — invasive cutaneous melanoma alongside #440. Default G9428 (all required elements). In situ → #440 only.
+- **#250 Prostate** — radical prostatectomy (88309) + carcinoma. Default 3267F (pTpN + Gleason + margins).
+
+If mipsSuggestions is empty for a specimen, no MIPS code is required — skip silently.
+
+### 5. IHC (if performed)
 - Ask if any IHC stains were performed.
 - If yes, ask: "Are IHC stains billed as professional component only (-26 modifier) or global (full billing)?"
   - Call set_ihc_modifier with "-26" or "" accordingly.
@@ -356,7 +424,7 @@ f) **For cytology cases — combined case comment**:
   - 88360 (or 88360-26) — Ki-67 / proliferation index
   - Same antibody on the same specimen is counted only once.
 
-### 5. Finalize
+### 7. Finalize
 - Call assemble_report.
 - Present the formatted report.
 - For any specimen where commentSource is 'ai', offer: "Would you like to save the AI-generated comment for [specimen organ/diagnosis] to Airtable PathPattern for future reuse?"

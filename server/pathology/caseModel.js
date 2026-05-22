@@ -41,6 +41,7 @@ export const emptySpecimen = () => ({
   comment: '',
   commentSource: null,
   markers: null,           // { status: 'pending'|'available', list: [], results: '' }
+  mips: [],               // [{ measureNumber, code, codeLabel }]
   cpt: null,
   cptAddons: [],
 });

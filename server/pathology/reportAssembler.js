@@ -12,6 +12,7 @@
  */
 
 import { formatCptSummary } from './cptBilling.js';
+import { formatMipsSummary } from './mipsBilling.js';
 
 function upper(s) {
   return s ? String(s).toUpperCase() : '';
@@ -135,6 +136,16 @@ export function assemblePathologyReport(caseData) {
   if (cptText) {
     parts.push('---');
     parts.push(cptText);
+  }
+
+  // MIPS quality measures
+  const mipsEntries = specimens.flatMap(s =>
+    (s.mips || []).map(m => ({ specimenLetter: s.letter, ...m }))
+  );
+  const mipsText = formatMipsSummary(mipsEntries);
+  if (mipsText) {
+    parts.push('');
+    parts.push(mipsText);
   }
 
   return parts.join('\n\n');
