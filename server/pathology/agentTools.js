@@ -94,6 +94,17 @@ export const PATHOLOGY_TOOL_SCHEMAS = [
     },
   },
   {
+    name: 'set_ihc_modifier',
+    description: 'Set the IHC billing modifier for the entire case. Call this when the pathologist indicates IHC stains should be billed as professional component only (modifier -26) or global (no modifier). Call before assemble_report.',
+    input_schema: {
+      type: 'object',
+      required: ['modifier'],
+      properties: {
+        modifier: { type: 'string', enum: ['-26', ''], description: '"-26" = professional component only (e.g. 88342-26, 88341-26); "" = global/full billing (default)' },
+      },
+    },
+  },
+  {
     name: 'set_case_comment',
     description: 'Set a single combined comment for the entire case. Used for cytology cases where one comprehensive comment covers all specimens rather than per-specimen comments.',
     input_schema: {
@@ -236,6 +247,11 @@ export async function executePathologyTool(name, args, caseData) {
       return { case: c, result: { added: entry } };
     }
 
+    case 'set_ihc_modifier': {
+      c.ihcModifier = args.modifier || '';
+      return { case: c, result: { ok: true, ihcModifier: c.ihcModifier } };
+    }
+
     case 'set_case_comment': {
       c.caseComment = args.comment || '';
       return { case: c, result: { ok: true } };
@@ -331,7 +347,14 @@ f) **For cytology cases — combined case comment**:
 
 ### 4. IHC (if performed)
 - Ask if any IHC stains were performed.
+- If yes, ask: "Are IHC stains billed as professional component only (-26 modifier) or global (full billing)?"
+  - Call set_ihc_modifier with "-26" or "" accordingly.
 - For each stain, call add_ihc_entry.
+- IHC billing rules (applied automatically by the assembler):
+  - 88342 (or 88342-26) — 1st distinct antibody per specimen
+  - 88341 (or 88341-26) — each additional distinct antibody per specimen
+  - 88360 (or 88360-26) — Ki-67 / proliferation index
+  - Same antibody on the same specimen is counted only once.
 
 ### 5. Finalize
 - Call assemble_report.

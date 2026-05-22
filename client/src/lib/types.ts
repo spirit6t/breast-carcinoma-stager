@@ -234,6 +234,7 @@ export interface PathologyCaseData {
   specimens: PathologySpecimen[];
   ihc: IhcEntry[];
   caseComment: string;   // combined cytology comment rendered once at end of Final Diagnosis
+  ihcModifier: string;  // '' = global billing; '-26' = professional component only
   reportText: string;
   updatedAt: string;
 }

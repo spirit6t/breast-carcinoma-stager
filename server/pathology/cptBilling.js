@@ -165,9 +165,67 @@ export function suggestPathologyCpt(designation) {
   return result;
 }
 
-export function formatCptSummary(specimens) {
+// ── IHC billing ───────────────────────────────────────────────────────────────
+// 88342  — 1st antibody per specimen (or 88342-26 for professional component)
+// 88341  — each additional distinct antibody (or 88341-26)
+// 88360  — Ki-67 / proliferation index (morphometric, computerized)
+// Modifier: '-26' = professional component only; '' = global
+
+function normAb(ab) {
+  return String(ab || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function isKi67(ab) {
+  const n = normAb(ab);
+  return n === 'ki-67' || n === 'ki67' || n === 'mib-1' || n === 'mib1';
+}
+
+/**
+ * Compute IHC CPT units grouped by specimen letter.
+ * modifier: '-26' or '' (empty = global/full billing)
+ * Returns [{ specimenLetter, entries: [{ antibody, cpt }] }]
+ */
+export function computePathologyIhcBilling(ihcEntries, modifier = '') {
+  const mod = modifier
+    ? (modifier.startsWith('-') ? modifier : `-${modifier}`)
+    : '';
+
+  const bySpecimen = new Map();
+  for (const e of ihcEntries || []) {
+    const letter = String(e.specimenLetter || '').toUpperCase();
+    if (!letter) continue;
+    if (!bySpecimen.has(letter)) bySpecimen.set(letter, { ki67: new Set(), others: [] });
+    const bucket = bySpecimen.get(letter);
+    if (isKi67(e.antibody)) {
+      bucket.ki67.add(normAb(e.antibody));
+    } else {
+      const key = normAb(e.antibody);
+      if (!bucket.others.some(x => normAb(x) === key)) {
+        bucket.others.push(String(e.antibody || '').trim());
+      }
+    }
+  }
+
+  const result = [];
+  for (const [letter, bucket] of [...bySpecimen.entries()].sort()) {
+    const entries = [];
+    bucket.others.forEach((ab, i) => {
+      entries.push({ antibody: ab, cpt: (i === 0 ? `88342${mod}` : `88341${mod}`) });
+    });
+    [...bucket.ki67].forEach(ab => {
+      const display = (ab === 'ki-67' || ab === 'ki67') ? 'Ki-67' : ab;
+      entries.push({ antibody: display, cpt: `88360${mod}` });
+    });
+    if (entries.length) result.push({ specimenLetter: letter, entries });
+  }
+  return result;
+}
+
+export function formatCptSummary(specimens, ihcEntries = [], ihcModifier = '') {
   if (!specimens || !specimens.length) return '';
   const lines = ['CPT BILLING SUMMARY'];
+
+  // Specimen-level codes
   for (const s of specimens) {
     let line = `${s.letter}. ${s.designation || ''}`;
     if (s.cpt) line += ` — ${s.cpt}`;
@@ -176,5 +234,29 @@ export function formatCptSummary(specimens) {
       lines.push(`   Add-on: ${s.cptAddons.join(', ')}`);
     }
   }
+
+  // IHC codes — grouped by specimen
+  const ihcBilling = computePathologyIhcBilling(ihcEntries, ihcModifier);
+  if (ihcBilling.length) {
+    const modLabel = ihcModifier ? ` (professional component${ihcModifier})` : '';
+    lines.push('');
+    lines.push(`IMMUNOHISTOCHEMISTRY${modLabel}:`);
+
+    for (const spec of ihcBilling) {
+      const first  = spec.entries.filter(e => e.cpt.startsWith('88342'));
+      const addl   = spec.entries.filter(e => e.cpt.startsWith('88341'));
+      const ki67   = spec.entries.filter(e => e.cpt.startsWith('88360'));
+      const total  = spec.entries.length;
+
+      const parts = [];
+      if (first.length)            parts.push(`${first[0].cpt} × ${first.length} (${first.map(e => e.antibody).join(', ')})`);
+      if (addl.length === 1)       parts.push(`${addl[0].cpt} (${addl[0].antibody})`);
+      else if (addl.length > 1)    parts.push(`${addl[0].cpt} × ${addl.length} (${addl.map(e => e.antibody).join(', ')})`);
+      ki67.forEach(e =>            parts.push(`${e.cpt} (${e.antibody})`));
+
+      lines.push(`   Spec. ${spec.specimenLetter} [${total} stain${total !== 1 ? 's' : ''}]: ${parts.join(', ')}`);
+    }
+  }
+
   return lines.join('\n');
 }

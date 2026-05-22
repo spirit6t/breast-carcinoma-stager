@@ -130,8 +130,8 @@ export function assemblePathologyReport(caseData) {
     parts.push(ihcLines.join('\n'));
   }
 
-  // CPT summary
-  const cptText = formatCptSummary(specimens);
+  // CPT summary (includes IHC stain count)
+  const cptText = formatCptSummary(specimens, caseData.ihc || [], caseData.ihcModifier || '');
   if (cptText) {
     parts.push('---');
     parts.push(cptText);

@@ -14,6 +14,7 @@ export function createEmptyPathologyCase() {
     specimens: [],   // PathologySpecimen[]
     ihc: [],
     caseComment: '', // combined cytology comment rendered once at end of Final Diagnosis
+    ihcModifier: '', // '' = global billing; '-26' = professional component only
     reportText: '',
     updatedAt: new Date().toISOString(),
   };
