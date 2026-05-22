@@ -96,7 +96,7 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
   const [history, setHistory] = useState<unknown[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [savedComments, setSavedComments] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
+  const [savedComments, setSavedComments] = useState<Record<string, 'saving' | 'saved' | { error: string }>>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const grow = (el: HTMLTextAreaElement) => {
@@ -250,8 +250,12 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
                   <span className="airtable-save-label">{label}</span>
                   {status === 'saved' ? (
                     <span className="airtable-save-ok">✓ Saved</span>
-                  ) : status === 'error' ? (
-                    <span className="airtable-save-err">✗ Error</span>
+                  ) : status && typeof status === 'object' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
+                      <span className="airtable-save-err">✗ Error</span>
+                      <span style={{ fontSize: 11, color: 'var(--danger)', maxWidth: 240, wordBreak: 'break-word' }}>{status.error}</span>
+                      <button className="airtable-save-btn" onClick={() => setSavedComments(prev => { const n = { ...prev }; delete n[key]; return n; })}>Retry</button>
+                    </div>
                   ) : (
                     <button
                       className="airtable-save-btn"
@@ -260,7 +264,7 @@ export function AgentPane({ caseState, settings, onCaseUpdate, openSettings, onR
                         setSavedComments(prev => ({ ...prev, [key]: 'saving' }));
                         const name = `${(s.organ || '').toLowerCase()} ${(s.diagnosisLine || (s.diagnosisLines || [])[0] || '').toLowerCase()}`.trim();
                         const result = await saveCommentToAirtable(name, s.comment, s.organ || '');
-                        setSavedComments(prev => ({ ...prev, [key]: result.success ? 'saved' : 'error' }));
+                        setSavedComments(prev => ({ ...prev, [key]: result.success ? 'saved' : { error: result.error || 'Unknown error' } }));
                       }}
                     >
                       {status === 'saving' ? 'Saving…' : 'Save to Airtable'}
