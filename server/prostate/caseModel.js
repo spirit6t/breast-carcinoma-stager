@@ -91,10 +91,6 @@ export function createEmptyProstateCase() {
     organ:       'prostate',
     mode:        'prostate-biopsy',
     receivedDate: null,
-    priorHistory: {
-      clinicalHistory: '',
-      psaLevel:        '',    // e.g. '8.5 ng/mL'
-    },
     procedure:   [],          // ['Systematic biopsy'] | ['Targeted biopsy'] | both
     specimens:   [],          // ProstateBiopsySpecimen[]
 

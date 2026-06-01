@@ -251,7 +251,6 @@ export function createEmptyProstateCase(): ProstateCaseData {
     organ:       'prostate',
     mode:        'prostate-biopsy',
     receivedDate: null,
-    priorHistory: { clinicalHistory: '', psaLevel: '' },
     procedure:   [],
     specimens:   [],
     periprosataticFatInvasion: null,

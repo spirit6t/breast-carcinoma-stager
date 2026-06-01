@@ -14,9 +14,7 @@ export const PROSTATE_TOOL_SCHEMAS = [
     input_schema: {
       type: 'object',
       properties: {
-        clinicalHistory: { type: 'string' },
-        psaLevel:        { type: 'string', description: 'e.g. "8.5 ng/mL"' },
-        procedure:       {
+        procedure: {
           type: 'array',
           items: { type: 'string' },
           description: 'e.g. ["Systematic biopsy"] or ["Systematic biopsy", "Targeted biopsy"]',
@@ -140,9 +138,7 @@ export async function executeProstateTool(name, args, caseData) {
   switch (name) {
 
     case 'set_intake': {
-      if (args.clinicalHistory != null) c.priorHistory.clinicalHistory = args.clinicalHistory;
-      if (args.psaLevel        != null) c.priorHistory.psaLevel        = args.psaLevel;
-      if (args.procedure       != null) c.procedure                    = args.procedure;
+      if (args.procedure != null) c.procedure = args.procedure;
       return { case: c, result: { ok: true } };
     }
 
@@ -269,11 +265,8 @@ export const PROSTATE_SYSTEM_PROMPT = `You are an expert genitourinary pathology
 ## WORKFLOW — follow this exact order:
 
 ### 1. Intake
-Ask for:
-- Clinical history / indication
-- Serum PSA level (e.g., "8.5 ng/mL")
-- Biopsy type: Systematic, Targeted, or both?
-Call set_intake with all collected information.
+Ask for biopsy type only: Systematic, Targeted, or both?
+Call set_intake with the procedure.
 
 ### 2. Collect ALL specimen designations first
 Ask: "Please list all specimen designations (e.g., A. Prostate, left apex, core needle biopsy; B. Prostate, right apex, core needle biopsy...)."

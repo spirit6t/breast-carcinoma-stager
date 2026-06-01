@@ -225,12 +225,6 @@ export function ReportPreview({ caseState, update }: Props) {
 
           {isProstate ? (
             <>
-              {v(c.priorHistory?.clinicalHistory) && (
-                <Section title="Clinical Information" rows={[
-                  { label: 'History', value: v(c.priorHistory.clinicalHistory) },
-                  { label: 'PSA',     value: v(c.priorHistory.psaLevel) },
-                ]} />
-              )}
               {(c.specimens || []).map((s: any, i: number) => (
                 <Section key={i} title={`Specimen ${s.letter}`} rows={[
                   { label: 'Designation',  value: v(s.designation) },

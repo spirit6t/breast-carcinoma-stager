@@ -224,13 +224,6 @@ export function assembleProstateBiopsyReport(caseData) {
   const parts = [];
   const specimens = (caseData.specimens || []).sort((a, b) => a.letter.localeCompare(b.letter));
 
-  // Clinical information
-  const h = caseData.priorHistory || {};
-  const clinLines = [];
-  if (h.clinicalHistory?.trim()) clinLines.push(h.clinicalHistory.trim());
-  if (h.psaLevel?.trim())        clinLines.push(`PSA: ${h.psaLevel.trim()}`);
-  if (clinLines.length) parts.push(`CLINICAL INFORMATION\n${clinLines.join('\n')}`);
-
   // Procedure
   if (caseData.procedure?.length) {
     parts.push(`PROCEDURE: ${caseData.procedure.map(p => p.toUpperCase()).join(', ')}`);

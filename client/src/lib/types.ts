@@ -279,10 +279,6 @@ export interface ProstateCaseData {
   organ:       'prostate';
   mode:        'prostate-biopsy';
   receivedDate: string | null;
-  priorHistory: {
-    clinicalHistory: string;
-    psaLevel:        string;
-  };
   procedure:   string[];
   specimens:   ProstateBiopsySpecimen[];
   periprosataticFatInvasion: string | null;
