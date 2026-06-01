@@ -244,7 +244,57 @@ export interface PathologyCaseData {
   updatedAt: string;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData;
+export interface ProstateBiopsySpecimen {
+  letter:        string;
+  designation:   string;
+  location:      string;
+  hasCarcinoma:  boolean | null;
+  histologicType:             string;
+  gleasonPrimary:             number | null;
+  gleasonSecondary:           number | null;
+  gleasonScore:               number | null;
+  gradeGroup:                 number | null;
+  gradeGroupLabel:            string;
+  pattern4Pct:                string;
+  pattern4PctNumeric:         number | null;
+  pattern5PctNumeric:         number | null;
+  idc:                        string;
+  idcIncorporatedIntoGrade:   string;
+  cribriformGlands:           string;
+  coresTotal:                 number | null;
+  coresPositive:              number | null;
+  corePctInvolvement:         number[];
+  perineumralInvasion:        string | null;
+  lvi:                        string | null;
+  additionalFindings:         string[];
+  pin4Performed:              boolean;
+  pin4Result:                 string;
+  cpt:                        string;
+  cptAddons:                  string[];
+}
+
+export interface ProstateCaseData {
+  version:     number;
+  organ:       'prostate';
+  mode:        'prostate-biopsy';
+  receivedDate: string | null;
+  priorHistory: {
+    clinicalHistory: string;
+    psaLevel:        string;
+    clinicalStage:   string;
+    imagingFindings: string;
+  };
+  procedure:   string[];
+  specimens:   ProstateBiopsySpecimen[];
+  periprosataticFatInvasion: string | null;
+  seminalVesicleInvasion:    string | null;
+  treatmentEffect:           string | null;
+  caseComment:               string;
+  reportText:  string;
+  updatedAt:   string;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AnyCase, CaseData, PathologyCaseData, Settings } from './lib/types';
-import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
+import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, createEmptyProstateCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
 import { autosaveCase, loadAutosavedCase, loadSettings, saveSettings } from './lib/storage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AgentPane } from './components/AgentPane';
 import { ReportPreview } from './components/ReportPreview';
 
-type OrganType = 'breast' | 'endometrium' | 'pathology';
+type OrganType = 'breast' | 'endometrium' | 'pathology' | 'prostate';
 
 function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
   return (
@@ -28,6 +28,11 @@ function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
           <div className="organ-card-title">Surgical Path / Cytology</div>
           <div className="organ-card-desc">Any organ — surgical biopsies, FNA, BAL, effusions, resections + Airtable PathPattern lookup</div>
         </div>
+        <div className="organ-card" onClick={() => onSelect('prostate')}>
+          <div className="organ-card-icon">🔵</div>
+          <div className="organ-card-title">Prostate Biopsy</div>
+          <div className="organ-card-desc">Needle core biopsy — Gleason grading, grade groups, IDC, cribriform, PIN4 IHC — CAP protocol</div>
+        </div>
       </div>
     </div>
   );
@@ -44,7 +49,7 @@ export default function App() {
   // Auto-compute breast staging only
   useEffect(() => {
     const org = (caseState as any)?.organ;
-    if (!caseState || org === 'endometrium' || org === 'pathology') return;
+    if (!caseState || org === 'endometrium' || org === 'pathology' || org === 'prostate') return;
     const bc = caseState as CaseData;
     const computed =
       bc.mode === 'excision-invasive'
@@ -89,6 +94,8 @@ export default function App() {
       ? createEmptyEndometrialCase()
       : organ === 'pathology'
       ? createEmptyPathologyCase()
+      : organ === 'prostate'
+      ? createEmptyProstateCase()
       : createEmptyCase('excision-invasive');
     setCaseState(c);
     setSelectingOrgan(false);
@@ -123,6 +130,8 @@ export default function App() {
     ? 'Endometrial Carcinoma'
     : organ === 'pathology'
     ? 'Surgical Pathology / Cytology'
+    : organ === 'prostate'
+    ? 'Prostate Biopsy'
     : 'Breast Carcinoma';
 
   // Show organ selector if no case exists or user clicked New Case

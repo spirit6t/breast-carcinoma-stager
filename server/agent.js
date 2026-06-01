@@ -10,6 +10,7 @@
 import { TOOL_SCHEMAS, SYSTEM_PROMPT, executeTool } from './agentTools.js';
 import { ENDO_TOOL_SCHEMAS, ENDO_SYSTEM_PROMPT, executeEndoTool } from './endometrial/agentTools.js';
 import { PATHOLOGY_TOOL_SCHEMAS, PATHOLOGY_SYSTEM_PROMPT, executePathologyTool } from './pathology/agentTools.js';
+import { PROSTATE_TOOL_SCHEMAS, PROSTATE_SYSTEM_PROMPT, executeProstateTool } from './prostate/agentTools.js';
 import {
   runAnthropicTurn,
   buildAnthropicToolResultMessage,
@@ -28,11 +29,21 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
   }
 
   const organ = caseState?.organ;
-  const isEndo     = organ === 'endometrium';
+  const isEndo      = organ === 'endometrium';
   const isPathology = organ === 'pathology';
-  const tools     = isPathology ? PATHOLOGY_TOOL_SCHEMAS : isEndo ? ENDO_TOOL_SCHEMAS : TOOL_SCHEMAS;
-  const sysPrompt = isPathology ? PATHOLOGY_SYSTEM_PROMPT : isEndo ? ENDO_SYSTEM_PROMPT : SYSTEM_PROMPT;
-  const execTool  = isPathology ? executePathologyTool : isEndo ? executeEndoTool : executeTool;
+  const isProstate  = organ === 'prostate';
+  const tools     = isProstate  ? PROSTATE_TOOL_SCHEMAS
+                  : isPathology ? PATHOLOGY_TOOL_SCHEMAS
+                  : isEndo      ? ENDO_TOOL_SCHEMAS
+                  : TOOL_SCHEMAS;
+  const sysPrompt = isProstate  ? PROSTATE_SYSTEM_PROMPT
+                  : isPathology ? PATHOLOGY_SYSTEM_PROMPT
+                  : isEndo      ? ENDO_SYSTEM_PROMPT
+                  : SYSTEM_PROMPT;
+  const execTool  = isProstate  ? executeProstateTool
+                  : isPathology ? executePathologyTool
+                  : isEndo      ? executeEndoTool
+                  : executeTool;
 
   let currentCase = caseState;
   const toolEvents = [];

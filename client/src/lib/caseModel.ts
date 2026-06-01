@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, PathologyCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -245,6 +245,24 @@ export function createEmptyEndometrialCase(): EndometrialCaseData {
   };
 }
 
+export function createEmptyProstateCase(): ProstateCaseData {
+  return {
+    version:     1,
+    organ:       'prostate',
+    mode:        'prostate-biopsy',
+    receivedDate: null,
+    priorHistory: { clinicalHistory: '', psaLevel: '', clinicalStage: '', imagingFindings: '' },
+    procedure:   [],
+    specimens:   [],
+    periprosataticFatInvasion: null,
+    seminalVesicleInvasion:    null,
+    treatmentEffect:           null,
+    caseComment:               '',
+    reportText:  '',
+    updatedAt:   new Date().toISOString(),
+  };
+}
+
 export function createEmptyPathologyCase(): PathologyCaseData {
   return {
     version: 1,
@@ -255,6 +273,8 @@ export function createEmptyPathologyCase(): PathologyCaseData {
     priorHistory: { clinicalHistory: '' },
     specimens: [],
     ihc: [],
+    caseComment: '',
+    ihcModifier: '',
     reportText: '',
     updatedAt: new Date().toISOString(),
   };

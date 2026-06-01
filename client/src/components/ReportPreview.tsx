@@ -67,16 +67,17 @@ export function ReportPreview({ caseState, update }: Props) {
 
   const isEndo = (caseState as any).organ === 'endometrium';
   const isPathology = (caseState as any).organ === 'pathology';
+  const isProstate = (caseState as any).organ === 'prostate';
 
   const saveDraft = () => {
-    const prefix = isEndo ? 'endo' : isPathology ? 'pathology' : 'breast';
+    const prefix = isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : 'breast';
     downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
   const loadDraft = async () => {
     try {
       const data = (await pickJsonFile()) as AnyCase;
-      if ((data as any)?.cap || (data as any)?.organ === 'pathology') {
+      if ((data as any)?.cap || (data as any)?.organ === 'pathology' || (data as any)?.organ === 'prostate') {
         update(() => data);
         setReportText(data.reportText || '');
       }
@@ -86,7 +87,7 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const c = caseState as any;
-  const bc = (isEndo || isPathology) ? null : (caseState as CaseData);
+  const bc = (isEndo || isPathology || isProstate) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens.length
@@ -147,7 +148,7 @@ export function ReportPreview({ caseState, update }: Props) {
     return parts.length ? parts.join(' · ') : null;
   })();
 
-  const hasData = c.specimens.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType;
+  const hasData = c.specimens.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate;
   const target = signoutTarget(c.receivedDate);
 
   return (
@@ -222,7 +223,37 @@ export function ReportPreview({ caseState, update }: Props) {
             )}
           </div>
 
-          {isPathology ? (
+          {isProstate ? (
+            <>
+              {v(c.priorHistory?.clinicalHistory) && (
+                <Section title="Clinical Information" rows={[
+                  { label: 'History',        value: v(c.priorHistory.clinicalHistory) },
+                  { label: 'PSA',            value: v(c.priorHistory.psaLevel) },
+                  { label: 'Clinical stage', value: v(c.priorHistory.clinicalStage) },
+                  { label: 'Imaging',        value: v(c.priorHistory.imagingFindings) },
+                ]} />
+              )}
+              {(c.specimens || []).map((s: any, i: number) => (
+                <Section key={i} title={`Specimen ${s.letter}`} rows={[
+                  { label: 'Designation',  value: v(s.designation) },
+                  { label: 'Carcinoma',    value: s.hasCarcinoma === true ? 'Yes' : s.hasCarcinoma === false ? 'No (benign)' : null },
+                  { label: 'Grade group',  value: v(s.gradeGroupLabel) },
+                  { label: '% Pattern 4',  value: v(s.pattern4Pct) },
+                  { label: 'Cores (+/total)', value: (s.coresPositive != null && s.coresTotal != null) ? `${s.coresPositive}/${s.coresTotal}` : null },
+                  { label: 'IDC',          value: v(s.idc) },
+                  { label: 'Cribriform',   value: v(s.cribriformGlands) },
+                  { label: 'PNI',          value: v(s.perineumralInvasion) },
+                  { label: 'PIN4',         value: s.pin4Performed ? v(s.pin4Result) : null },
+                  { label: 'CPT',          value: v([s.cpt, ...(s.cptAddons||[])].filter(Boolean).join(', ')) },
+                ]} />
+              ))}
+              <Section title="Case Summary" rows={[
+                { label: 'Fat invasion', value: v(c.periprosataticFatInvasion) },
+                { label: 'SV invasion',  value: v(c.seminalVesicleInvasion) },
+                { label: 'Treatment effect', value: v(c.treatmentEffect) },
+              ]} />
+            </>
+          ) : isPathology ? (
             <>
               {v(c.priorHistory?.clinicalHistory) && (
                 <Section title="Clinical History" rows={[
