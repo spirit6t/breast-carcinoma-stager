@@ -73,6 +73,9 @@ export const emptyProstateBiopsySpecimen = () => ({
   // ── Benign / additional findings ──
   additionalFindings:  [],    // string[] — 'High-grade PIN' | 'ASAP' | 'Inflammation (...)' | 'AIP'
 
+  // ── MIPS ──
+  mips: [],               // [{ measureNumber, code, codeLabel }]
+
   // ── PIN4 IHC ──
   pin4Performed:  false,
   pin4Block:      '',         // block ID, e.g. 'A1' or 'A'

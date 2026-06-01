@@ -208,6 +208,18 @@ function renderCaseSummary(caseData, specimens) {
   return lines.join('\n');
 }
 
+function renderMipsSummary(specimens) {
+  const entries = specimens.flatMap(s =>
+    (s.mips || []).map(m => ({ letter: s.letter, ...m }))
+  );
+  if (!entries.length) return '';
+  const lines = ['MIPS QUALITY MEASURES:'];
+  for (const e of entries) {
+    lines.push(`   Spec. ${e.letter} — Measure #${e.measureNumber}: ${e.code}${e.codeLabel ? ` (${e.codeLabel})` : ''}`);
+  }
+  return lines.join('\n');
+}
+
 function renderCptSummary(specimens) {
   if (!specimens.length) return '';
   const lines = ['CPT BILLING SUMMARY'];
@@ -274,6 +286,13 @@ export function assembleProstateBiopsyReport(caseData) {
   if (cpt) {
     parts.push('---');
     parts.push(cpt);
+  }
+
+  // MIPS
+  const mips = renderMipsSummary(specimens);
+  if (mips) {
+    parts.push('');
+    parts.push(mips);
   }
 
   return parts.join('\n\n');

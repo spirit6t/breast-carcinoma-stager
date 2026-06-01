@@ -4,6 +4,7 @@
  */
 
 import { computeGradeGroup, emptyProstateBiopsySpecimen, PATTERN4_PCT_OPTIONS_GG2, PATTERN4_PCT_OPTIONS_GG3 } from './caseModel.js';
+import { suggestMipsMeasures, MIPS_MEASURES } from '../pathology/mipsBilling.js';
 
 // ── Tool schemas ──────────────────────────────────────────────────────────────
 
@@ -124,6 +125,20 @@ export const PROSTATE_TOOL_SCHEMAS = [
     },
   },
   {
+    name: 'set_mips_code',
+    description: 'Record a confirmed MIPS quality code for a specimen. Only call this if a MIPS measure actually applies.',
+    input_schema: {
+      type: 'object',
+      required: ['letter', 'measureNumber', 'code'],
+      properties: {
+        letter:        { type: 'string' },
+        measureNumber: { type: 'string', description: 'MIPS measure number, e.g. "250"' },
+        code:          { type: 'string', description: 'Quality code, e.g. "3267F"' },
+        codeLabel:     { type: 'string' },
+      },
+    },
+  },
+  {
     name: 'assemble_report',
     description: 'Assemble and finalize the prostate biopsy report. Call only after all specimens have been processed.',
     input_schema: { type: 'object', properties: {} },
@@ -200,6 +215,9 @@ export async function executeProstateTool(name, args, caseData) {
       if (args.perineumralInvasion != null) s.perineumralInvasion = args.perineumralInvasion;
       if (args.lvi                 != null) s.lvi                 = args.lvi;
 
+      // Check MIPS applicability for this specimen
+      const mipsSuggestions = suggestMipsMeasures(c.specimens[idx]);
+
       return {
         case: c,
         result: {
@@ -213,6 +231,15 @@ export async function executeProstateTool(name, args, caseData) {
             : grade.gradeGroup === 3
             ? PATTERN4_PCT_OPTIONS_GG3
             : null,
+          mipsSuggestions: mipsSuggestions.length
+            ? mipsSuggestions.map(s => ({
+                measureNumber:    s.measureNumber,
+                title:            s.measure.title,
+                defaultCode:      s.defaultCode,
+                defaultCodeLabel: s.measure.codes[Object.keys(s.measure.codes).find(k => s.measure.codes[k].code === s.defaultCode)]?.label || '',
+                allCodes:         s.measure.codes,
+              }))
+            : [],
         },
       };
     }
@@ -247,6 +274,19 @@ export async function executeProstateTool(name, args, caseData) {
       if (args.treatmentEffect           != null) c.treatmentEffect           = args.treatmentEffect;
       if (args.caseComment               != null) c.caseComment               = args.caseComment;
       return { case: c, result: { ok: true } };
+    }
+
+    case 'set_mips_code': {
+      const letter = String(args.letter || '').toUpperCase();
+      const idx = (c.specimens || []).findIndex(s => s.letter === letter);
+      if (idx === -1) return { error: `Specimen ${letter} not found` };
+      const existing = (c.specimens[idx].mips || []).filter(m => m.measureNumber !== args.measureNumber);
+      c.specimens[idx].mips = [...existing, {
+        measureNumber: args.measureNumber,
+        code:          args.code,
+        codeLabel:     args.codeLabel || '',
+      }];
+      return { case: c, result: { ok: true, letter, measureNumber: args.measureNumber, code: args.code } };
     }
 
     case 'assemble_report': {
@@ -313,7 +353,16 @@ After each specimen's diagnosis is set, ask: "Was PIN4 immunohistochemistry perf
 - The report automatically generates the full standardized PIN4 paragraph — do NOT write it yourself.
 - This automatically adds CPT add-on 88344 for each specimen.
 
-### 5. Case-level summary
+### 5. MIPS Quality Measures
+After set_specimen_carcinoma, check the mipsSuggestions array in the result.
+
+- If mipsSuggestions is **empty**: inform the pathologist — "No MIPS quality measures apply to this prostate needle core biopsy. (MIPS Measure #250 applies only to radical prostatectomy, CPT 88309.)"
+- If mipsSuggestions is **non-empty**: announce each triggered measure, confirm the performance status with the pathologist, then call set_mips_code.
+
+Note: prostate needle biopsies (CPT 88305) do not trigger Measure #250. That measure requires radical prostatectomy (CPT 88309) and includes pTpN, Gleason score, and margin status — elements not assessable on biopsy.
+
+### 6. Case-level summary
+
 After all specimens are processed, ask:
 a) "Was periprostatic fat present in any specimen? If yes, was fat invasion identified?"
 b) "Were seminal vesicles submitted? If yes, any involvement?"

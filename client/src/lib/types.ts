@@ -270,6 +270,7 @@ export interface ProstateBiopsySpecimen {
   pin4Performed:              boolean;
   pin4Block:                  string;
   pin4Result:                 string;
+  mips: Array<{ measureNumber: string; code: string; codeLabel: string }>;
   cpt:                        string;
   cptAddons:                  string[];
 }
