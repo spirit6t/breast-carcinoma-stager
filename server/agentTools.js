@@ -419,7 +419,11 @@ BLOCK 11 — BIOMARKERS (ER/PR/HER2/Ki-67)
 • If pending: set biomarkersSource = "Pending"
 Tool: set_biomarkers
 
-BLOCK 12 — FINALIZE
+BLOCK 12 — MIPS QUALITY MEASURES
+None of the 2026 MIPS pathology quality measures apply to breast carcinoma cases.
+Inform the pathologist: "No MIPS quality codes are required for this breast carcinoma case."
+
+BLOCK 13 — FINALIZE
 1. Compute stage: compute_invasive_stage (or compute_dcis_stage for DCIS)
 2. Confirm all critical fields are filled. If anything is missing, use request_clarification.
 3. Call assemble_report.

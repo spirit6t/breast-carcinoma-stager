@@ -240,6 +240,7 @@ export function createEmptyEndometrialCase(): EndometrialCaseData {
       specialStudies: { biomarkersSource: null, er: null, pr: null, mmr: null, p53: null, representativeBlock: '' },
     },
     ihc: [],
+    mips: [],
     reportText: '',
     updatedAt: new Date().toISOString(),
   };

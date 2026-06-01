@@ -163,6 +163,7 @@ export interface CaseData {
 export interface EndometrialCaseData {
   version: number;
   organ: 'endometrium';
+  mips?: Array<{ measureNumber: string; code: string; codeLabel: string }>;
   mode: string;
   receivedDate: string | null;
   signoutDate: string | null;

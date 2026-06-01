@@ -85,5 +85,15 @@ export function assembleEndometrialReport(caseData) {
     parts.push(cpt);
   }
 
+  // MIPS quality measures
+  const mipsEntries = caseData.mips || [];
+  if (mipsEntries.length) {
+    const mipsLines = ['MIPS QUALITY MEASURES:'];
+    for (const m of mipsEntries) {
+      mipsLines.push(`   Measure #${m.measureNumber}: ${m.code}${m.codeLabel ? ` (${m.codeLabel})` : ''}`);
+    }
+    parts.push(mipsLines.join('\n'));
+  }
+
   return parts.join('\n\n');
 }

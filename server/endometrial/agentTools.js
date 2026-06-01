@@ -123,6 +123,19 @@ export const ENDO_TOOL_SCHEMAS = [
     },
   },
   {
+    name: 'set_mips_code',
+    description: 'Record the confirmed MIPS quality code for this endometrial case.',
+    input_schema: {
+      type: 'object',
+      required: ['measureNumber', 'code'],
+      properties: {
+        measureNumber: { type: 'string', description: 'e.g. "491"' },
+        code:          { type: 'string', description: 'e.g. "M1193"' },
+        codeLabel:     { type: 'string' },
+      },
+    },
+  },
+  {
     name: 'assemble_report',
     description: 'Assemble and finalize the pathology report. Call only when all required fields are filled.',
     input_schema: {
@@ -353,6 +366,16 @@ export function executeEndoTool(name, args, caseData) {
       return { case: c, result: { specialStudies: ss } };
     }
 
+    case 'set_mips_code': {
+      const existing = (c.mips || []).filter(m => m.measureNumber !== args.measureNumber);
+      c.mips = [...existing, {
+        measureNumber: args.measureNumber,
+        code:          args.code,
+        codeLabel:     args.codeLabel || '',
+      }];
+      return { case: c, result: { ok: true, measureNumber: args.measureNumber, code: args.code } };
+    }
+
     case 'assemble_report': {
       return { case: c, result: { assembled: true } };
     }
@@ -446,7 +469,16 @@ BLOCK 11 — IHC & BIOMARKERS
 Tools: add_ihc_entry (specimenLetter, block, antibody, finding, sentence)
        set_biomarkers_endo (source, er, pr, mmr, p53, representativeBlock)
 
-BLOCK 12 — FINALIZE
+BLOCK 12 — MIPS QUALITY MEASURES
+Measure #491 (MMR/MSI Biomarker Testing) applies to endometrial carcinoma cases.
+- Ask: "Was MMR/MSI testing performed or recommended in the report?"
+  • Yes / included in report → call set_mips_code with measureNumber "491", code "M1193", codeLabel "MMR/MSI testing included or recommended in report"
+  • Testing done on a prior biopsy specimen → M1195
+  • Not performed, no reason given → M1194 (Performance Not Met)
+  • Patient has Lynch Syndrome diagnosis → M1192 (Exclusion — not counted in denominator)
+  • Medical reason (no residual tumor, insufficient tissue, post-neoadjuvant) → M1194 with documented reason (Exception)
+
+BLOCK 13 — FINALIZE
 1. Compute stage: compute_endometrial_stage (auto-calculates pT, pN, FIGO 2009, FIGO 2023)
 2. If POLE mutation or other special classifier is known, override with set_endo_stage (figoStage2023 = "IAm (POLEmut)" etc.)
 3. Confirm all critical fields filled; use request_clarification if missing.
