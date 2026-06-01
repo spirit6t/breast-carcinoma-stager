@@ -35,7 +35,7 @@ export function suggestSpecimenCpt(designation: string) {
   });
 }
 
-export function computeIhcBilling(ihc: AnyCase['ihc']) {
+export function computeIhcBilling(ihc: (AnyCase & { ihc?: unknown[] })['ihc']) {
   return postJson<{ billing: { specimenLetter: string; entries: { antibody: string; cpt: string }[] }[] }>(
     '/api/billing/ihc',
     { ihc }
