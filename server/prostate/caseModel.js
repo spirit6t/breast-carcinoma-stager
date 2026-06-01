@@ -75,7 +75,8 @@ export const emptyProstateBiopsySpecimen = () => ({
 
   // ── PIN4 IHC ──
   pin4Performed:  false,
-  pin4Result:     '',         // e.g. 'Negative for carcinoma (p63+/HMWK+/AMACR-)'
+  pin4Block:      '',         // block ID, e.g. 'A1' or 'A'
+  pin4Result:     '',         // 'Positive for carcinoma' | 'Negative for carcinoma'
 
   // ── CPT ──
   cpt:      '88305',

@@ -34,25 +34,23 @@ function renderMalignantSpecimen(s, hasHighGradeElsewhere) {
     lines.push(indent(up(s.gradeGroupLabel)));
   }
 
-  // Pattern 4 % — GG2 (3+4) and GG3 (4+3); omit if high-grade elsewhere per CAP note
+  // Pattern 4 % — show ONE line only.
+  // GG2/GG3: categorical value takes priority; suppress if high-grade elsewhere per CAP note.
+  // GG4+: numeric value only.
   if (s.pattern4Pct && !hasHighGradeElsewhere) {
     lines.push(indent(`PERCENTAGE OF PATTERN 4: ${up(s.pattern4Pct)}`));
-  }
-  // Pattern 4/5 numeric for GG4+
-  if (s.pattern4PctNumeric != null) {
+  } else if (s.pattern4PctNumeric != null) {
     lines.push(indent(`PERCENTAGE OF PATTERN 4: ${s.pattern4PctNumeric}%`));
   }
   if (s.pattern5PctNumeric != null) {
     lines.push(indent(`PERCENTAGE OF PATTERN 5: ${s.pattern5PctNumeric}%`));
   }
 
-  // IDC
+  // IDC — "IDC INCORPORATED INTO GRADE" only shown when IDC is present
   const idcVal = s.idc || 'Not identified';
   lines.push(indent(`INTRADUCTAL CARCINOMA: ${up(idcVal)}`));
-  if (idcVal.toLowerCase() === 'present') {
+  if (/present/i.test(idcVal)) {
     lines.push(indent(`IDC INCORPORATED INTO GRADE: ${up(s.idcIncorporatedIntoGrade || 'No')}`));
-  } else {
-    lines.push(indent('IDC INCORPORATED INTO GRADE: NO'));
   }
 
   // Cribriform glands — applicable to GG2/GG3/GG4 (score 7–8)
@@ -82,10 +80,33 @@ function renderMalignantSpecimen(s, hasHighGradeElsewhere) {
     lines.push(indent(`LYMPHOVASCULAR INVASION: ${up(s.lvi)}`));
   }
 
-  // PIN4 IHC
-  if (s.pin4Performed && s.pin4Result) {
+  // PIN4 IHC — full standardized paragraph
+  if (s.pin4Performed) {
+    const blockRef  = s.pin4Block  ? `block ${s.pin4Block}`  : 'block ***';
+    const isPositive = /positive|amacr\+/i.test(s.pin4Result || '');
+    const isNegative = /negative/i.test(s.pin4Result || '');
+    let pin4Para;
+    if (isPositive) {
+      pin4Para =
+        `Specimen ${s.letter} was evaluated with a PIN immunohistochemical multiplex stain ` +
+        `(p63, cytokeratin 34betaE12, AMACR) performed on ${blockRef} to assess small infiltrating glands. ` +
+        `These glands have no identifiable basal cells by p63 and cytokeratin 34betaE12 with positive ` +
+        `luminal AMACR staining confirming the diagnosis above. All controls stain appropriately.`;
+    } else if (isNegative) {
+      pin4Para =
+        `Specimen ${s.letter} was evaluated with a PIN immunohistochemical multiplex stain ` +
+        `(p63, cytokeratin 34betaE12, AMACR) performed on ${blockRef} to assess small infiltrating glands. ` +
+        `These glands demonstrate intact basal cells by p63 and cytokeratin 34betaE12 with absent AMACR ` +
+        `staining, not supporting carcinoma. All controls stain appropriately.`;
+    } else {
+      // Fallback: use whatever the agent captured
+      pin4Para =
+        `Specimen ${s.letter} was evaluated with a PIN immunohistochemical multiplex stain ` +
+        `(p63, cytokeratin 34betaE12, AMACR) performed on ${blockRef}. ` +
+        `${(s.pin4Result || '').trim()} All controls stain appropriately.`;
+    }
     lines.push('');
-    lines.push(indent(`PIN4 IMMUNOHISTOCHEMISTRY: ${s.pin4Result.trim()}`));
+    lines.push(indent(`PIN4 IMMUNOHISTOCHEMISTRY: ${pin4Para}`));
   }
 
   return lines.join('\n');

@@ -268,6 +268,7 @@ export interface ProstateBiopsySpecimen {
   lvi:                        string | null;
   additionalFindings:         string[];
   pin4Performed:              boolean;
+  pin4Block:                  string;
   pin4Result:                 string;
   cpt:                        string;
   cptAddons:                  string[];

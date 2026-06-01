@@ -96,7 +96,8 @@ export const PROSTATE_TOOL_SCHEMAS = [
       required: ['letter', 'pin4Result'],
       properties: {
         letter:     { type: 'string' },
-        pin4Result: { type: 'string', description: 'e.g. "Negative for carcinoma (p63+/HMWK+/AMACR-)" or "Positive for carcinoma (AMACR+/p63-/HMWK-)"' },
+        pin4Block:  { type: 'string', description: 'Block ID where PIN4 was performed, e.g. "A1" or "A". Ask the pathologist.' },
+        pin4Result: { type: 'string', enum: ['Positive for carcinoma', 'Negative for carcinoma'], description: 'Whether PIN4 confirms or excludes carcinoma.' },
       },
     },
   },
@@ -234,6 +235,7 @@ export async function executeProstateTool(name, args, caseData) {
       const idx = (c.specimens || []).findIndex(s => s.letter === letter);
       if (idx === -1) return { error: `Specimen ${letter} not found` };
       c.specimens[idx].pin4Performed = true;
+      c.specimens[idx].pin4Block     = args.pin4Block  || '';
       c.specimens[idx].pin4Result    = args.pin4Result || '';
       // Add 88344 CPT add-on if not already present
       const addons = c.specimens[idx].cptAddons || [];
@@ -313,12 +315,10 @@ b) Call set_specimen_benign with optional additionalFindings array.
 
 ### 4. PIN4 IHC (if performed for any specimen)
 After each specimen's diagnosis is set, ask: "Was PIN4 immunohistochemistry performed for specimen [X]?"
-- If yes: "What is the PIN4 result?"
-  Typical results:
-  - Positive (confirms carcinoma): "Positive for carcinoma (AMACR+/p63-/HMWK-)"
-  - Negative: "Negative for carcinoma (p63+/HMWK+/AMACR-)"
-  - Atypical glands confirmed malignant: "AMACR positive / basal cell markers absent, supporting carcinoma"
-- Call set_specimen_pin4. This automatically adds CPT add-on 88344 for each specimen.
+- If yes: ask "Which block was PIN4 performed on?" and "Result: Positive for carcinoma or Negative for carcinoma?"
+- Call set_specimen_pin4 with pin4Block (e.g. "A1") and pin4Result ("Positive for carcinoma" or "Negative for carcinoma").
+- The report automatically generates the full standardized PIN4 paragraph — do NOT write it yourself.
+- This automatically adds CPT add-on 88344 for each specimen.
 
 ### 5. Case-level summary
 After all specimens are processed, ask:
