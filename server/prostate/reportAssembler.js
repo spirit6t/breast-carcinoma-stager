@@ -248,28 +248,15 @@ export function assembleProstateBiopsyReport(caseData) {
 
   parts.push('FINAL DIAGNOSIS:');
 
-  // Positive specimens first, then benign
-  const malignant = specimens.filter(s => s.hasCarcinoma);
-  const benign    = specimens.filter(s => s.hasCarcinoma === false);
-
-  if (malignant.length) {
-    for (const s of malignant) {
+  // Render all specimens in designation order (A, B, C, ...)
+  for (const s of specimens) {
+    if (s.hasCarcinoma === true) {
       parts.push(renderMalignantSpecimen(s, hasHighGradeElsewhere && (s.gradeGroup ?? 0) < 4));
-    }
-  }
-
-  if (benign.length) {
-    const benignHeader = benign.length > 1 ? 'BENIGN SPECIMEN(S):' : null;
-    if (benignHeader) parts.push(benignHeader);
-    for (const s of benign) {
+    } else if (s.hasCarcinoma === false) {
       parts.push(renderBenignSpecimen(s));
+    } else {
+      parts.push(`${s.letter}. ${up(s.designation)}:\n${indent('(PENDING)')}`);
     }
-  }
-
-  // Unprocessed specimens (hasCarcinoma still null)
-  const pending = specimens.filter(s => s.hasCarcinoma === null);
-  for (const s of pending) {
-    parts.push(`${s.letter}. ${up(s.designation)}:\n${indent('(PENDING)')}`);
   }
 
   // Case summary
