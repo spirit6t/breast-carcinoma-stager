@@ -16,8 +16,6 @@ export const PROSTATE_TOOL_SCHEMAS = [
       properties: {
         clinicalHistory: { type: 'string' },
         psaLevel:        { type: 'string', description: 'e.g. "8.5 ng/mL"' },
-        clinicalStage:   { type: 'string', description: 'e.g. "cT2a"' },
-        imagingFindings: { type: 'string', description: 'MRI or TRUS findings' },
         procedure:       {
           type: 'array',
           items: { type: 'string' },
@@ -143,8 +141,6 @@ export async function executeProstateTool(name, args, caseData) {
     case 'set_intake': {
       if (args.clinicalHistory != null) c.priorHistory.clinicalHistory = args.clinicalHistory;
       if (args.psaLevel        != null) c.priorHistory.psaLevel        = args.psaLevel;
-      if (args.clinicalStage   != null) c.priorHistory.clinicalStage   = args.clinicalStage;
-      if (args.imagingFindings != null) c.priorHistory.imagingFindings = args.imagingFindings;
       if (args.procedure       != null) c.procedure                    = args.procedure;
       return { case: c, result: { ok: true } };
     }
@@ -274,8 +270,6 @@ export const PROSTATE_SYSTEM_PROMPT = `You are an expert genitourinary pathology
 Ask for:
 - Clinical history / indication
 - Serum PSA level (e.g., "8.5 ng/mL")
-- Clinical stage (e.g., "cT2a")
-- Imaging findings (MRI lesion location, PI-RADS score if available)
 - Biopsy type: Systematic, Targeted, or both?
 Call set_intake with all collected information.
 

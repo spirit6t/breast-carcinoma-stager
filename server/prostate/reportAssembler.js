@@ -208,8 +208,6 @@ export function assembleProstateBiopsyReport(caseData) {
   const clinLines = [];
   if (h.clinicalHistory?.trim()) clinLines.push(h.clinicalHistory.trim());
   if (h.psaLevel?.trim())        clinLines.push(`PSA: ${h.psaLevel.trim()}`);
-  if (h.clinicalStage?.trim())   clinLines.push(`Clinical stage: ${h.clinicalStage.trim()}`);
-  if (h.imagingFindings?.trim()) clinLines.push(`Imaging: ${h.imagingFindings.trim()}`);
   if (clinLines.length) parts.push(`CLINICAL INFORMATION\n${clinLines.join('\n')}`);
 
   // Procedure

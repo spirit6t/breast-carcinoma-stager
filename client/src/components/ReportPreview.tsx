@@ -227,10 +227,8 @@ export function ReportPreview({ caseState, update }: Props) {
             <>
               {v(c.priorHistory?.clinicalHistory) && (
                 <Section title="Clinical Information" rows={[
-                  { label: 'History',        value: v(c.priorHistory.clinicalHistory) },
-                  { label: 'PSA',            value: v(c.priorHistory.psaLevel) },
-                  { label: 'Clinical stage', value: v(c.priorHistory.clinicalStage) },
-                  { label: 'Imaging',        value: v(c.priorHistory.imagingFindings) },
+                  { label: 'History', value: v(c.priorHistory.clinicalHistory) },
+                  { label: 'PSA',     value: v(c.priorHistory.psaLevel) },
                 ]} />
               )}
               {(c.specimens || []).map((s: any, i: number) => (

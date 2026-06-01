@@ -281,8 +281,6 @@ export interface ProstateCaseData {
   priorHistory: {
     clinicalHistory: string;
     psaLevel:        string;
-    clinicalStage:   string;
-    imagingFindings: string;
   };
   procedure:   string[];
   specimens:   ProstateBiopsySpecimen[];

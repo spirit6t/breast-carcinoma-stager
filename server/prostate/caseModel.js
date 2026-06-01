@@ -93,8 +93,6 @@ export function createEmptyProstateCase() {
     priorHistory: {
       clinicalHistory: '',
       psaLevel:        '',    // e.g. '8.5 ng/mL'
-      clinicalStage:   '',    // e.g. 'cT2a'
-      imagingFindings: '',
     },
     procedure:   [],          // ['Systematic biopsy'] | ['Targeted biopsy'] | both
     specimens:   [],          // ProstateBiopsySpecimen[]
