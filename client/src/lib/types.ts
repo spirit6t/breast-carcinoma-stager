@@ -291,7 +291,76 @@ export interface ProstateCaseData {
   updatedAt:   string;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData;
+export interface LungCaseData {
+  version: number;
+  organ: 'lung';
+  mode: 'lung-resection';
+  receivedDate: string | null;
+  resectionType: string | null;
+  treatmentStatus: string;
+  laterality: string | null;
+  lobe: string | null;
+  histologicType: string | null;
+  histologicTypeOther: string;
+  mucinous: boolean | null;
+  lepidic: boolean | null;
+  lepidic_predominant: boolean | null;
+  histologicPatterns: string;
+  histologicGrade: string | null;
+  invasiveSizeCm: number | null;
+  totalSizeCm: number | null;
+  pleuralInvasion: string | null;
+  stas: string | null;
+  lvi: string | null;
+  lviSubtypes: string[];
+  adjacentStructureInvasion: boolean;
+  adjacentStructures: string[];
+  multifocal: boolean;
+  multifocalNodules: Array<{ location: string; sizeCm: number; sameLobe: boolean }>;
+  treatmentEffect: string;
+  margins: {
+    invasiveStatus: string | null;
+    involvedMargins: string[];
+    closestMargin: string;
+    closestDistanceCm: number | null;
+    nonInvasiveStatus: string | null;
+  };
+  nodes: {
+    pnCategory: string | null;
+    positiveStations: string[];
+    examinedStations: string[];
+    nodesPositive: number | null;
+    nodesExamined: number | null;
+    extranodalExtension: string | null;
+    largestDepositMm: number | null;
+  };
+  metastasis: { pmCategory: string; sites: string[] };
+  stage: {
+    ptCategory: string | null;
+    pnCategory: string | null;
+    pmCategory: string | null;
+    stageGroup: string | null;
+    yPrefix: boolean;
+    rPrefix: boolean;
+    ptRationale: string;
+    pnRationale: string;
+  };
+  additionalFindings: string[];
+  specialStudies: {
+    molecularPending: boolean;
+    molecularMarkers: string[];
+    ihcPerformed: boolean;
+    ihcDescription: string;
+  };
+  ihc: IhcEntry[];
+  ihcModifier: string;
+  mips: Array<{ measureNumber: string; code: string; codeLabel: string }>;
+  caseComment: string;
+  reportText: string;
+  updatedAt: string;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';

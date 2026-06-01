@@ -68,16 +68,17 @@ export function ReportPreview({ caseState, update }: Props) {
   const isEndo = (caseState as any).organ === 'endometrium';
   const isPathology = (caseState as any).organ === 'pathology';
   const isProstate = (caseState as any).organ === 'prostate';
+  const isLung = (caseState as any).organ === 'lung';
 
   const saveDraft = () => {
-    const prefix = isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : 'breast';
+    const prefix = isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : 'breast';
     downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
   const loadDraft = async () => {
     try {
       const data = (await pickJsonFile()) as AnyCase;
-      if ((data as any)?.cap || (data as any)?.organ === 'pathology' || (data as any)?.organ === 'prostate') {
+      if ((data as any)?.cap || ['pathology','prostate','lung'].includes((data as any)?.organ)) {
         update(() => data);
         setReportText(data.reportText || '');
       }
@@ -87,7 +88,7 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const c = caseState as any;
-  const bc = (isEndo || isPathology || isProstate) ? null : (caseState as CaseData);
+  const bc = (isEndo || isPathology || isProstate || isLung) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens.length
@@ -148,7 +149,7 @@ export function ReportPreview({ caseState, update }: Props) {
     return parts.length ? parts.join(' · ') : null;
   })();
 
-  const hasData = c.specimens.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate;
+  const hasData = c.specimens?.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate || isLung;
   const target = signoutTarget(c.receivedDate);
 
   return (
@@ -223,7 +224,39 @@ export function ReportPreview({ caseState, update }: Props) {
             )}
           </div>
 
-          {isProstate ? (
+          {isLung ? (
+            <>
+              <Section title="Procedure" rows={[
+                { label: 'Resection type',    value: v(c.resectionType) },
+                { label: 'Treatment status',  value: v(c.treatmentStatus) },
+                { label: 'Laterality',        value: v(c.laterality) },
+                { label: 'Lobe',              value: v(c.lobe) },
+              ]} />
+              <Section title="Tumor" rows={[
+                { label: 'Histologic type',   value: v(c.histologicType) },
+                { label: 'Grade',             value: v(c.histologicGrade) },
+                { label: 'Invasive size',     value: c.invasiveSizeCm != null ? `${c.invasiveSizeCm} cm` : null },
+                { label: 'Total size',        value: c.totalSizeCm != null ? `${c.totalSizeCm} cm` : null },
+                { label: 'Pleural invasion',  value: v(c.pleuralInvasion) },
+                { label: 'STAS',              value: v(c.stas) },
+                { label: 'LVI',               value: v(c.lvi) },
+              ]} />
+              <Section title="Stage" rows={[
+                { label: 'pT',          value: v(c.stage?.ptCategory) },
+                { label: 'pN',          value: v(c.stage?.pnCategory) },
+                { label: 'pM',          value: v(c.stage?.pmCategory) },
+                { label: 'Stage group', value: v(c.stage?.stageGroup) },
+              ]} />
+              <Section title="Nodes" rows={[
+                { label: 'Positive/examined', value: (c.nodes?.nodesPositive != null && c.nodes?.nodesExamined != null) ? `${c.nodes.nodesPositive}/${c.nodes.nodesExamined}` : null },
+                { label: 'pN category', value: v(c.nodes?.pnCategory) },
+              ]} />
+              <Section title="Special Studies" rows={[
+                { label: 'Molecular pending', value: c.specialStudies?.molecularPending ? v((c.specialStudies.molecularMarkers || []).join(', ') || 'Yes') : null },
+                { label: 'IHC',               value: c.specialStudies?.ihcPerformed ? v(c.specialStudies.ihcDescription || 'Yes') : null },
+              ]} />
+            </>
+          ) : isProstate ? (
             <>
               {(c.specimens || []).map((s: any, i: number) => (
                 <Section key={i} title={`Specimen ${s.letter}`} rows={[

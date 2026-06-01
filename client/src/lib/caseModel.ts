@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -242,6 +242,27 @@ export function createEmptyEndometrialCase(): EndometrialCaseData {
     ihc: [],
     mips: [],
     reportText: '',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyLungCase(): LungCaseData {
+  return {
+    version: 1, organ: 'lung', mode: 'lung-resection', receivedDate: null,
+    resectionType: null, treatmentStatus: 'p', laterality: null, lobe: null,
+    histologicType: null, histologicTypeOther: '', mucinous: null,
+    lepidic: null, lepidic_predominant: null, histologicPatterns: '',
+    histologicGrade: null, invasiveSizeCm: null, totalSizeCm: null,
+    pleuralInvasion: null, stas: null, lvi: null, lviSubtypes: [],
+    adjacentStructureInvasion: false, adjacentStructures: [],
+    multifocal: false, multifocalNodules: [], treatmentEffect: 'No known presurgical therapy',
+    margins: { invasiveStatus: null, involvedMargins: [], closestMargin: '', closestDistanceCm: null, nonInvasiveStatus: null },
+    nodes: { pnCategory: null, positiveStations: [], examinedStations: [], nodesPositive: null, nodesExamined: null, extranodalExtension: null, largestDepositMm: null },
+    metastasis: { pmCategory: 'not_applicable', sites: [] },
+    stage: { ptCategory: null, pnCategory: null, pmCategory: null, stageGroup: null, yPrefix: false, rPrefix: false, ptRationale: '', pnRationale: '' },
+    additionalFindings: [],
+    specialStudies: { molecularPending: false, molecularMarkers: [], ihcPerformed: false, ihcDescription: '' },
+    ihc: [], ihcModifier: '', mips: [], caseComment: '', reportText: '',
     updatedAt: new Date().toISOString(),
   };
 }
