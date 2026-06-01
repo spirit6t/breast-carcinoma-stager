@@ -222,12 +222,26 @@ function renderMipsSummary(specimens) {
 
 function renderCptSummary(specimens) {
   if (!specimens.length) return '';
-  const lines = ['CPT BILLING SUMMARY'];
+
+  // Tally all CPT codes across specimens
+  const counts = new Map();
+  const labels = {
+    '88305': 'Tissue biopsy',
+    '88344': 'PIN4 IHC — multiplex antibody stain',
+  };
+
   for (const s of specimens) {
-    lines.push(`${s.letter}. ${up(s.designation)} — ${s.cpt || '88305'}`);
-    if (s.cptAddons && s.cptAddons.length) {
-      lines.push(`   Add-on: ${s.cptAddons.join(', ')}${s.cptAddons.includes('88344') ? ' (PIN4 IHC — multiplex antibody)' : ''}`);
+    const primary = s.cpt || '88305';
+    counts.set(primary, (counts.get(primary) || 0) + 1);
+    for (const addon of (s.cptAddons || [])) {
+      counts.set(addon, (counts.get(addon) || 0) + 1);
     }
+  }
+
+  const lines = ['CPT BILLING SUMMARY'];
+  for (const [code, count] of [...counts.entries()].sort()) {
+    const label = labels[code] ? ` (${labels[code]})` : '';
+    lines.push(`   ${code} × ${count}${label}`);
   }
   return lines.join('\n');
 }
