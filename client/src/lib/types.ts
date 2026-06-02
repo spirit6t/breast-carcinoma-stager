@@ -307,6 +307,9 @@ export interface LungCaseData {
   lepidic_predominant: boolean | null;
   histologicPatterns: string;
   histologicGrade: string | null;
+  patternDetails: Record<string, number> | null;
+  iaslcGradeLabel: string;
+  iaslcGradeRationale: string;
   invasiveSizeCm: number | null;
   totalSizeCm: number | null;
   pleuralInvasion: string | null;

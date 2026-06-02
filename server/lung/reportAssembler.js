@@ -38,6 +38,10 @@ function buildPrimaryDxBlock(c, letter) {
     }
     if (c.histologicPatterns?.trim()) typeStr += ` (${c.histologicPatterns.trim().toUpperCase()})`;
     lines.push(ind(`- ${typeStr}`));
+    // IASLC grade rationale (non-mucinous adeno only)
+    if (c.iaslcGradeLabel) {
+      lines.push(ind(`  IASLC GRADE: ${up(c.iaslcGradeLabel)}${c.iaslcGradeRationale ? ' — ' + c.iaslcGradeRationale : ''}`));
+    }
   }
 
   // Size
@@ -134,7 +138,10 @@ function buildSynoptic(c) {
   }
   if (c.histologicGrade) {
     const gradeLabel = { G1: 'G1 — Well differentiated', G2: 'G2 — Moderately differentiated', G3: 'G3 — Poorly differentiated', G4: 'G4 — Undifferentiated', GX: 'GX — Cannot be assessed', not_applicable: 'Not applicable' };
-    tumorLines.push(ind(row('Histologic Grade', gradeLabel[c.histologicGrade] || c.histologicGrade)));
+    const gradeStr = c.iaslcGradeLabel
+      ? `${c.iaslcGradeLabel}${c.iaslcGradeRationale ? ' (' + c.iaslcGradeRationale + ')' : ''}`
+      : (gradeLabel[c.histologicGrade] || c.histologicGrade);
+    tumorLines.push(ind(row('Histologic Grade (IASLC)', gradeStr)));
   }
   if (c.invasiveSizeCm != null) tumorLines.push(ind(row('Invasive Tumor Size', `${c.invasiveSizeCm} cm`)));
   if (c.totalSizeCm != null)    tumorLines.push(ind(row('Total Tumor Size', `${c.totalSizeCm} cm`)));

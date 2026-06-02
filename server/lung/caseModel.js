@@ -3,6 +3,79 @@
  * CAP Protocol: Lung.Resection v5.1.0.0 — AJCC 9th Edition
  */
 
+// ── IASLC Histopathologic Grade — Non-mucinous Adenocarcinoma ─────────────────
+// G1: Lepidic-predominant, <20% high-grade pattern
+// G2: Acinar- or papillary-predominant, <20% high-grade pattern
+// G3: Any tumor with ≥20% high-grade pattern (solid, micropapillary, cribriform, complex glandular)
+
+export function computeIASLCGrade(patterns) {
+  const p = patterns || {};
+  const lepidic          = Number(p.lepidic          || 0);
+  const acinar           = Number(p.acinar           || 0);
+  const papillary        = Number(p.papillary        || 0);
+  const solid            = Number(p.solid            || 0);
+  const micropapillary   = Number(p.micropapillary   || 0);
+  const cribriform       = Number(p.cribriform       || 0);
+  const complex_glandular = Number(p.complex_glandular || 0);
+
+  const highGradePct = solid + micropapillary + cribriform + complex_glandular;
+
+  // G3 — ≥20% high-grade pattern, regardless of predominant
+  if (highGradePct >= 20) {
+    const hgParts = [];
+    if (solid)            hgParts.push(`solid ${solid}%`);
+    if (micropapillary)   hgParts.push(`micropapillary ${micropapillary}%`);
+    if (cribriform)       hgParts.push(`cribriform ${cribriform}%`);
+    if (complex_glandular) hgParts.push(`complex glandular ${complex_glandular}%`);
+    return {
+      grade: 'G3',
+      label: 'Grade 3 (G3) — Poorly differentiated',
+      rationale: `≥20% high-grade pattern (${highGradePct}%): ${hgParts.join(', ')}`,
+    };
+  }
+
+  // Determine predominant pattern (highest %)
+  const ranked = [
+    { name: 'lepidic', pct: lepidic },
+    { name: 'acinar', pct: acinar },
+    { name: 'papillary', pct: papillary },
+    { name: 'solid', pct: solid },
+    { name: 'micropapillary', pct: micropapillary },
+    { name: 'cribriform', pct: cribriform },
+    { name: 'complex glandular', pct: complex_glandular },
+  ].filter(x => x.pct > 0).sort((a, b) => b.pct - a.pct);
+
+  const predominant = ranked[0];
+  if (!predominant) return null;
+
+  const hgNote = highGradePct > 0 ? `; ${highGradePct}% high-grade pattern` : '; no high-grade pattern';
+
+  // G1 — lepidic-predominant with <20% high-grade
+  if (predominant.name === 'lepidic') {
+    return {
+      grade: 'G1',
+      label: 'Grade 1 (G1) — Well differentiated',
+      rationale: `Lepidic-predominant (${lepidic}%)${hgNote}`,
+    };
+  }
+
+  // G2 — acinar- or papillary-predominant with <20% high-grade
+  if (predominant.name === 'acinar' || predominant.name === 'papillary') {
+    return {
+      grade: 'G2',
+      label: 'Grade 2 (G2) — Moderately differentiated',
+      rationale: `${predominant.name.charAt(0).toUpperCase() + predominant.name.slice(1)}-predominant (${predominant.pct}%)${hgNote}`,
+    };
+  }
+
+  // Predominant is a high-grade pattern — G3
+  return {
+    grade: 'G3',
+    label: 'Grade 3 (G3) — Poorly differentiated',
+    rationale: `${predominant.name}-predominant (${predominant.pct}%)`,
+  };
+}
+
 // ── Stage group table (AJCC 9th) ──────────────────────────────────────────────
 // Rows: pT  Columns: pN0, pN1, pN2a, pN2b, pN3
 
@@ -85,7 +158,11 @@ export function createEmptyLungCase() {
     lepidic:             null,   // boolean — non-mucinous adeno: lepidic component present?
     lepidic_predominant: null,   // boolean — lepidic-predominant subtype?
     histologicPatterns:  '',     // free text: "Acinar 60%, lepidic 40%"
-    histologicGrade:     null,   // 'G1' | 'G2' | 'G3' | 'G4' | 'GX' | 'not_applicable'
+    histologicGrade:     null,   // 'G1' | 'G2' | 'G3' | 'GX' | 'not_applicable'
+    // IASLC pattern details (non-mucinous adenocarcinoma only)
+    patternDetails: null,        // { lepidic, acinar, papillary, solid, micropapillary, cribriform, complex_glandular } — percentages
+    iaslcGradeLabel: '',         // e.g. 'Grade 2 (G2) — Moderately differentiated'
+    iaslcGradeRationale: '',     // e.g. 'Acinar-predominant (60%); 10% high-grade pattern'
 
     // Tumor — size
     invasiveSizeCm: null,   // primary T-determining size

@@ -3,7 +3,7 @@
  * CAP Protocol: Lung.Resection v5.1.0.0 — AJCC 9th Edition
  */
 
-import { computeStageGroup, RESECTION_CPT } from './caseModel.js';
+import { computeStageGroup, computeIASLCGrade, RESECTION_CPT } from './caseModel.js';
 import { suggestMipsMeasures, MIPS_MEASURES } from '../pathology/mipsBilling.js';
 
 // ── CPT auto-detection for secondary specimens ────────────────────────────────
@@ -78,8 +78,21 @@ export const LUNG_TOOL_SCHEMAS = [
         mucinous:    { type: 'boolean', description: 'Adenocarcinoma only: mucinous subtype?' },
         lepidic:     { type: 'boolean', description: 'Non-mucinous adenocarcinoma: lepidic component present?' },
         lepidic_predominant: { type: 'boolean', description: 'True if lepidic growth is the predominant pattern (≥50%)' },
-        histologicPatterns: { type: 'string', description: 'e.g. "Acinar 60%, lepidic 30%, micropapillary 10%"' },
-        histologicGrade: { type: 'string', enum: ['G1', 'G2', 'G3', 'G4', 'GX', 'not_applicable'] },
+        histologicPatterns: { type: 'string', description: 'Free-text summary of patterns, e.g. "Acinar 60%, lepidic 30%, solid 10%". Auto-populated from patternDetails if provided.' },
+        patternDetails: {
+          type: 'object',
+          description: 'IASLC pattern percentages for non-mucinous adenocarcinoma. Provide all patterns present (should sum to ~100%). Grade is auto-computed per IASLC scheme.',
+          properties: {
+            lepidic:           { type: 'number', description: '% lepidic growth' },
+            acinar:            { type: 'number', description: '% acinar growth' },
+            papillary:         { type: 'number', description: '% papillary growth' },
+            solid:             { type: 'number', description: '% solid growth (HIGH-GRADE)' },
+            micropapillary:    { type: 'number', description: '% micropapillary growth (HIGH-GRADE)' },
+            cribriform:        { type: 'number', description: '% cribriform growth (HIGH-GRADE)' },
+            complex_glandular: { type: 'number', description: '% complex glandular pattern — fused glands or single cells in desmoplastic stroma (HIGH-GRADE)' },
+          },
+        },
+        histologicGrade: { type: 'string', enum: ['G1', 'G2', 'G3', 'GX', 'not_applicable'], description: 'Leave unset for non-mucinous adenocarcinoma — grade is auto-computed from patternDetails via IASLC scheme.' },
         invasiveSizeCm: { type: 'number', description: 'Invasive component size in cm (T-determining for non-mucinous adeno with lepidic; total size for others)' },
         totalSizeCm:    { type: 'number', description: 'Total tumor size including lepidic component (cm). Only required for non-mucinous adenocarcinoma with lepidic component.' },
         pleuralInvasion: { type: 'string', enum: ['PL0', 'PL1', 'PL2'] },
@@ -274,6 +287,33 @@ export async function executeLungTool(name, args, caseData) {
                       'pleuralInvasion','stas','lvi','lviSubtypes','adjacentStructureInvasion',
                       'adjacentStructures','multifocal','multifocalNodules','treatmentEffect'];
       for (const f of fields) { if (args[f] != null) c[f] = args[f]; }
+
+      // IASLC grade auto-computation for non-mucinous adenocarcinoma
+      const isAdeno  = (args.histologicType || c.histologicType) === 'adenocarcinoma';
+      const isMucin  = args.mucinous ?? c.mucinous;
+      if (isAdeno && !isMucin && args.patternDetails) {
+        c.patternDetails = args.patternDetails;
+        const iaslc = computeIASLCGrade(args.patternDetails);
+        if (iaslc) {
+          c.histologicGrade      = iaslc.grade;
+          c.iaslcGradeLabel      = iaslc.label;
+          c.iaslcGradeRationale  = iaslc.rationale;
+          // Build readable pattern summary
+          const pd = args.patternDetails;
+          const patternStr = [
+            pd.lepidic          ? `lepidic ${pd.lepidic}%`           : '',
+            pd.acinar           ? `acinar ${pd.acinar}%`             : '',
+            pd.papillary        ? `papillary ${pd.papillary}%`       : '',
+            pd.solid            ? `solid ${pd.solid}%`               : '',
+            pd.micropapillary   ? `micropapillary ${pd.micropapillary}%` : '',
+            pd.cribriform       ? `cribriform ${pd.cribriform}%`     : '',
+            pd.complex_glandular ? `complex glandular ${pd.complex_glandular}%` : '',
+          ].filter(Boolean).join(', ');
+          if (patternStr && !args.histologicPatterns) c.histologicPatterns = patternStr;
+        }
+        return { case: c, result: { ok: true, iaslcGrade: c.histologicGrade, iaslcGradeLabel: c.iaslcGradeLabel, iaslcGradeRationale: c.iaslcGradeRationale } };
+      }
+
       return { case: c, result: { ok: true } };
     }
 
@@ -387,8 +427,9 @@ Ask: procedure type, laterality, lobe resected, treatment status (primary/post-n
 Call set_procedure.
 
 ### 2. Histologic Type and Grade
+
 Ask for histologic type. Key types:
-- Adenocarcinoma (most common) — ask: mucinous? If non-mucinous: lepidic component? If lepidic: is it the predominant pattern (≥50%)?
+- Adenocarcinoma (most common) — ask: mucinous? If non-mucinous: lepidic component? If lepidic: is it the predominant pattern (>=50%)?
 - Squamous cell carcinoma
 - Large cell carcinoma
 - Small cell carcinoma
@@ -396,8 +437,21 @@ Ask for histologic type. Key types:
 - Typical / Atypical carcinoid
 - Squamous cell carcinoma in situ (SCIS)
 
-Ask for histologic grade (G1/G2/G3/G4). Not applicable for small cell, carcinoids.
-Ask for histologic patterns if applicable (e.g. "acinar 60%, lepidic 40%").
+**For NON-MUCINOUS ADENOCARCINOMA — use the IASLC grading scheme:**
+Ask for the percentage of each growth pattern (should sum to 100%):
+  Lepidic % | Acinar % | Papillary % | Solid % | Micropapillary % | Cribriform % | Complex glandular %
+  (Complex glandular = fused glands or single cells infiltrating desmoplastic stroma)
+
+Pass as patternDetails in set_tumor. Grade is AUTO-COMPUTED:
+  G1 (Well differentiated)      = Lepidic-predominant + <20% high-grade
+  G2 (Moderately differentiated) = Acinar- or papillary-predominant + <20% high-grade
+  G3 (Poorly differentiated)    = Any tumor with >=20% high-grade (solid + micropapillary + cribriform + complex glandular combined)
+
+HIGH-GRADE patterns: solid, micropapillary, cribriform, complex glandular.
+Announce the computed grade and rationale to the pathologist for confirmation.
+
+**For ALL OTHER histologic types** (squamous cell, large cell, pleomorphic, NEC):
+Ask for histologic grade directly: G1 / G2 / G3 / GX. Not applicable for small cell or carcinoids.
 
 ### 3. Tumor Size
 **Critical AJCC 9th rule:** For non-mucinous adenocarcinoma WITH a lepidic component:
