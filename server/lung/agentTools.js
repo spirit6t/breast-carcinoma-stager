@@ -19,6 +19,8 @@ export const LUNG_TOOL_SCHEMAS = [
         letter:      { type: 'string', description: 'A, B, C, ...' },
         designation: { type: 'string', description: 'Verbatim designation, e.g. "LUNG, RIGHT UPPER LOBE, LOBECTOMY" or "LYMPH NODES, STATION 4R" or "BRONCHIAL MARGIN, ADDITIONAL"' },
         isPrimary:   { type: 'boolean', description: 'True for the main resection specimen whose diagnosis is built from the CAP workup fields. False for all secondary specimens (lymph nodes, margins, etc.).' },
+        cpt:         { type: 'string', description: 'CPT code for this specimen. Default for secondary specimens: "88305". Use "88307" for wedge/segmentectomy specimens if separately submitted.' },
+        cptLabel:    { type: 'string', description: 'Human-readable CPT label, e.g. "Lymph node, station 4R" or "Bronchial margin".' },
       },
     },
   },
@@ -211,14 +213,21 @@ export async function executeLungTool(name, args, caseData) {
       const existing = (c.specimens || []).find(s => s.letter === letter);
       if (existing) {
         c.specimens = c.specimens.map(s => s.letter === letter
-          ? { ...s, designation: args.designation || s.designation, isPrimary: args.isPrimary ?? s.isPrimary }
+          ? { ...s,
+              designation: args.designation || s.designation,
+              isPrimary:   args.isPrimary ?? s.isPrimary,
+              cpt:         args.cpt || s.cpt || '88305',
+              cptLabel:    args.cptLabel || s.cptLabel || '',
+            }
           : s
         );
       } else {
         c.specimens = [...(c.specimens || []), {
           letter,
-          designation: args.designation || '',
-          isPrimary:   args.isPrimary ?? false,
+          designation:    args.designation || '',
+          isPrimary:      args.isPrimary ?? false,
+          cpt:            args.isPrimary ? (RESECTION_CPT[c.resectionType] || '88309') : (args.cpt || '88305'),
+          cptLabel:       args.cptLabel || (args.isPrimary ? '' : 'Tissue specimen'),
           diagnosisLines: [],
           comment: '',
         }];
@@ -360,6 +369,7 @@ Ask: "Please list all specimen designations (e.g., A. Lung, right upper lobe, lo
 - Call add_specimen once per specimen, in order.
 - Mark the main resection specimen as isPrimary: true. All others (lymph nodes, margins, additional biopsies) are isPrimary: false.
 - Common secondary specimens: lymph node stations, additional margins (bronchial, vascular), pleural biopsies, mediastinal tissue.
+- Set cpt: "88305" for each secondary specimen (lymph nodes, margins, biopsies). Use cptLabel to describe the specimen (e.g. "Lymph node, station 4R" or "Bronchial margin, additional").
 - Do NOT ask for diagnoses yet — collect all designations first.
 
 ### 2. Procedure (for primary resection specimen)

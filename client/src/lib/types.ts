@@ -357,6 +357,8 @@ export interface LungCaseData {
     letter: string;
     designation: string;
     isPrimary: boolean;
+    cpt: string;
+    cptLabel: string;
     diagnosisLines: string[];
     comment: string;
   }>;

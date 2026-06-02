@@ -250,21 +250,45 @@ function buildSynoptic(c) {
 // ── CPT billing summary ───────────────────────────────────────────────────────
 
 function buildCptSummary(c) {
-  const primaryCpt = RESECTION_CPT[c.resectionType] || '88309';
-  const primaryLabel = primaryCpt === '88309' ? 'Lung lobectomy/pneumonectomy' : 'Lung wedge/segmentectomy';
+  const counts = {};          // cpt → count
+  const labels = {};          // cpt → first-seen label
 
+  const addCode = (cpt, label) => {
+    counts[cpt] = (counts[cpt] || 0) + 1;
+    if (!labels[cpt]) labels[cpt] = label;
+  };
+
+  // Primary resection specimen
+  const primaryCpt   = RESECTION_CPT[c.resectionType] || '88309';
+  const primaryLabel = primaryCpt === '88309' ? 'Lung lobectomy/pneumonectomy' : 'Lung wedge/segmentectomy';
+  addCode(primaryCpt, primaryLabel);
+
+  // Secondary specimens — each billed as 88305 (or their stored cpt)
+  for (const spec of (c.specimens || [])) {
+    if (spec.isPrimary) continue;
+    const cpt   = spec.cpt || '88305';
+    const label = spec.cptLabel || 'Tissue specimen (lymph node/margin/other)';
+    addCode(cpt, label);
+  }
+
+  // IHC stains
   const ihcBilling = computePathologyIhcBilling(c.ihc || [], c.ihcModifier || '');
-  const ihcCodes = {};
   for (const spec of ihcBilling) {
     for (const e of spec.entries) {
-      ihcCodes[e.cpt] = (ihcCodes[e.cpt] || 0) + 1;
+      addCode(e.cpt, '');
     }
   }
 
   const lines = ['CPT BILLING SUMMARY'];
-  lines.push(`   ${primaryCpt} × 1 (${primaryLabel})`);
-  for (const [code, cnt] of Object.entries(ihcCodes).sort()) {
-    lines.push(`   ${code} × ${cnt}`);
+  // Sort: primary CPT first, then ascending
+  const sorted = Object.keys(counts).sort((a, b) => {
+    if (a === primaryCpt) return -1;
+    if (b === primaryCpt) return 1;
+    return a.localeCompare(b);
+  });
+  for (const cpt of sorted) {
+    const label = labels[cpt] ? ` (${labels[cpt]})` : '';
+    lines.push(`   ${cpt} × ${counts[cpt]}${label}`);
   }
   return lines.join('\n');
 }
