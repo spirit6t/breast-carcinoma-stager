@@ -7,11 +7,13 @@ import { computeStageGroup, computeIASLCGrade, RESECTION_CPT } from './caseModel
 import { suggestMipsMeasures, MIPS_MEASURES } from '../pathology/mipsBilling.js';
 
 // ── CPT auto-detection for secondary specimens ────────────────────────────────
+// 88331 — Pathology consultation during surgery; frozen section, first block
 // 88307 — Lymph nodes, regional excision (mediastinal stations in lung resection)
 // 88305 — Other tissue specimens (margins, pleura, soft tissue, etc.)
 
 function detectSecondaryLungCpt(designation) {
   const d = (designation || '').toLowerCase();
+  if (/frozen|\bFS\b|intraoperative\s+consult|intra-?op/i.test(designation || '')) return '88331';
   if (/lymph\s*node|station\s*\d|nodal\s*station/i.test(d)) return '88307';
   return '88305';
 }
@@ -419,7 +421,11 @@ Ask: "Please list all specimen designations (e.g., A. Lung, right upper lobe, lo
 - Call add_specimen once per specimen, in order.
 - Mark the main resection specimen as isPrimary: true. All others (lymph nodes, margins, additional biopsies) are isPrimary: false.
 - Common secondary specimens: lymph node stations, additional margins (bronchial, vascular), pleural biopsies, mediastinal tissue.
-- CPT for secondary specimens is auto-detected from the designation: lymph node stations → 88307 (regional lymph node excision); margins, biopsies, other tissue → 88305. You can override with an explicit cpt value if needed.
+- CPT for secondary specimens is auto-detected from the designation:
+    • "frozen" / "FS" / "intraoperative consult" in designation → 88331 (frozen section consultation, per specimen)
+    • lymph node stations → 88307 (regional lymph node excision)
+    • margins, biopsies, other tissue → 88305
+  You can override with an explicit cpt value if needed.
 - Do NOT ask for diagnoses yet — collect all designations first.
 
 ### 2. Procedure (for primary resection specimen)

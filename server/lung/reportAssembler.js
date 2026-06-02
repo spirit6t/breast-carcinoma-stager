@@ -266,15 +266,22 @@ function buildCptSummary(c) {
   };
 
   // Primary resection specimen
+  const CPT_LABELS = {
+    '88309': 'Lung lobectomy/pneumonectomy',
+    '88307': 'Lung wedge/segmentectomy or lymph node, regional excision',
+    '88305': 'Tissue specimen',
+    '88331': 'Frozen section consultation (intraoperative)',
+  };
+
   const primaryCpt   = RESECTION_CPT[c.resectionType] || '88309';
-  const primaryLabel = primaryCpt === '88309' ? 'Lung lobectomy/pneumonectomy' : 'Lung wedge/segmentectomy';
+  const primaryLabel = CPT_LABELS[primaryCpt] || primaryCpt;
   addCode(primaryCpt, primaryLabel);
 
-  // Secondary specimens — each billed as 88305 (or their stored cpt)
+  // Secondary specimens
   for (const spec of (c.specimens || [])) {
     if (spec.isPrimary) continue;
     const cpt   = spec.cpt || '88305';
-    const label = spec.cptLabel || 'Tissue specimen (lymph node/margin/other)';
+    const label = spec.cptLabel || CPT_LABELS[cpt] || 'Tissue specimen';
     addCode(cpt, label);
   }
 
