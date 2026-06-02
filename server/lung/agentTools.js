@@ -10,6 +10,36 @@ import { suggestMipsMeasures, MIPS_MEASURES } from '../pathology/mipsBilling.js'
 
 export const LUNG_TOOL_SCHEMAS = [
   {
+    name: 'add_specimen',
+    description: 'Add a specimen with its letter and verbatim designation. Call once per specimen. Collect ALL specimen designations before asking for diagnoses.',
+    input_schema: {
+      type: 'object',
+      required: ['letter', 'designation'],
+      properties: {
+        letter:      { type: 'string', description: 'A, B, C, ...' },
+        designation: { type: 'string', description: 'Verbatim designation, e.g. "LUNG, RIGHT UPPER LOBE, LOBECTOMY" or "LYMPH NODES, STATION 4R" or "BRONCHIAL MARGIN, ADDITIONAL"' },
+        isPrimary:   { type: 'boolean', description: 'True for the main resection specimen whose diagnosis is built from the CAP workup fields. False for all secondary specimens (lymph nodes, margins, etc.).' },
+      },
+    },
+  },
+  {
+    name: 'set_specimen_diagnosis',
+    description: 'Set the diagnosis lines for a SECONDARY specimen (lymph nodes, additional margins, pleural biopsy, etc.). Do NOT call for the primary resection specimen — its diagnosis is auto-built from set_tumor/set_stage data.',
+    input_schema: {
+      type: 'object',
+      required: ['letter', 'diagnosisLines'],
+      properties: {
+        letter:        { type: 'string' },
+        diagnosisLines: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Diagnosis bullet lines in ALL CAPS. Examples for lymph nodes: ["NEGATIVE FOR METASTATIC CARCINOMA (0/3 LYMPH NODES)"] or ["METASTATIC ADENOCARCINOMA (2 OF 4 LYMPH NODES)". For margins: ["NEGATIVE FOR CARCINOMA"] or ["MARGIN INVOLVED BY ADENOCARCINOMA"].',
+        },
+        comment: { type: 'string', description: 'Optional comment paragraph for this specimen.' },
+      },
+    },
+  },
+  {
     name: 'set_procedure',
     description: 'Set procedure type, treatment status, laterality, and lobe.',
     input_schema: {
@@ -175,6 +205,42 @@ export async function executeLungTool(name, args, caseData) {
 
   switch (name) {
 
+    case 'add_specimen': {
+      const letter = String(args.letter || '').toUpperCase();
+      if (!letter) return { error: 'add_specimen: letter is required' };
+      const existing = (c.specimens || []).find(s => s.letter === letter);
+      if (existing) {
+        c.specimens = c.specimens.map(s => s.letter === letter
+          ? { ...s, designation: args.designation || s.designation, isPrimary: args.isPrimary ?? s.isPrimary }
+          : s
+        );
+      } else {
+        c.specimens = [...(c.specimens || []), {
+          letter,
+          designation: args.designation || '',
+          isPrimary:   args.isPrimary ?? false,
+          diagnosisLines: [],
+          comment: '',
+        }];
+      }
+      // Track the primary letter
+      if (args.isPrimary) c.primarySpecimenLetter = letter;
+      c.specimens.sort((a, b) => a.letter.localeCompare(b.letter));
+      return { case: c, result: { ok: true, letter, isPrimary: args.isPrimary } };
+    }
+
+    case 'set_specimen_diagnosis': {
+      const letter = String(args.letter || '').toUpperCase();
+      const idx = (c.specimens || []).findIndex(s => s.letter === letter);
+      if (idx === -1) return { error: `Specimen ${letter} not found — call add_specimen first` };
+      if (c.specimens[idx].isPrimary) {
+        return { error: `Specimen ${letter} is the primary resection specimen — its diagnosis is auto-built from the tumor workup. Use set_tumor/set_stage instead.` };
+      }
+      if (args.diagnosisLines != null) c.specimens[idx].diagnosisLines = args.diagnosisLines;
+      if (args.comment        != null) c.specimens[idx].comment        = args.comment;
+      return { case: c, result: { ok: true, letter } };
+    }
+
     case 'set_procedure': {
       if (args.resectionType   != null) { c.resectionType   = args.resectionType;   c.cpt = RESECTION_CPT[args.resectionType] || '88309'; }
       if (args.treatmentStatus != null)   c.treatmentStatus = args.treatmentStatus;
@@ -289,7 +355,14 @@ export const LUNG_SYSTEM_PROMPT = `You are an expert thoracic pathology reportin
 
 ## WORKFLOW:
 
-### 1. Procedure
+### 1. Collect ALL specimen designations first
+Ask: "Please list all specimen designations (e.g., A. Lung, right upper lobe, lobectomy; B. Lymph nodes, station 4R; C. Lymph nodes, station 7...)."
+- Call add_specimen once per specimen, in order.
+- Mark the main resection specimen as isPrimary: true. All others (lymph nodes, margins, additional biopsies) are isPrimary: false.
+- Common secondary specimens: lymph node stations, additional margins (bronchial, vascular), pleural biopsies, mediastinal tissue.
+- Do NOT ask for diagnoses yet — collect all designations first.
+
+### 2. Procedure (for primary resection specimen)
 Ask: procedure type, laterality, lobe resected, treatment status (primary/post-neoadjuvant/recurrence).
 Call set_procedure.
 
@@ -397,7 +470,18 @@ Ask:
 
 Call set_special_studies.
 
-### 11. MIPS Quality Measures
+### 11. Secondary Specimen Diagnoses
+After the primary resection workup is complete, go through each secondary specimen:
+- **Lymph node specimens**: ask "How many nodes examined? How many positive?"
+  - If all negative: diagnosisLines = ["NEGATIVE FOR METASTATIC CARCINOMA (0/N LYMPH NODES)"]
+  - If positive: diagnosisLines = ["METASTATIC [HISTOLOGIC TYPE] CARCINOMA (X OF N LYMPH NODES)"]
+- **Additional margin specimens**: ask "Is the margin involved?"
+  - Negative: ["NEGATIVE FOR CARCINOMA"]
+  - Positive: ["MARGIN INVOLVED BY [HISTOLOGIC TYPE] CARCINOMA"]
+- **Other specimens**: ask for the diagnosis and enter as diagnosisLines in ALL CAPS.
+Call set_specimen_diagnosis for each secondary specimen.
+
+### 13. MIPS Quality Measures
 After set_stage, check the mipsSuggestions in the result:
 
 **Measure #396 — Lung Cancer Resection** (applies to 88309 + primary NSCLC):
@@ -409,7 +493,7 @@ After set_stage, check the mipsSuggestions in the result:
 - Wedge/segmentectomy (88307): "No MIPS required — wedge/segmentectomy (CPT 88307) is explicitly exempt from Measure #396."
 - Small cell / carcinoid: "Measure #396 exclusion applies — use G9424."
 
-### 12. Finalize
+### 14. Finalize
 Call assemble_report.
 Present the report. Summarize key findings in one sentence.
 `;

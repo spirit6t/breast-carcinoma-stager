@@ -352,6 +352,14 @@ export interface LungCaseData {
     ihcPerformed: boolean;
     ihcDescription: string;
   };
+  primarySpecimenLetter: string;
+  specimens: Array<{
+    letter: string;
+    designation: string;
+    isPrimary: boolean;
+    diagnosisLines: string[];
+    comment: string;
+  }>;
   ihc: IhcEntry[];
   ihcModifier: string;
   mips: Array<{ measureNumber: string; code: string; codeLabel: string }>;

@@ -262,6 +262,7 @@ export function createEmptyLungCase(): LungCaseData {
     stage: { ptCategory: null, pnCategory: null, pmCategory: null, stageGroup: null, yPrefix: false, rPrefix: false, ptRationale: '', pnRationale: '' },
     additionalFindings: [],
     specialStudies: { molecularPending: false, molecularMarkers: [], ihcPerformed: false, ihcDescription: '' },
+    primarySpecimenLetter: 'A', specimens: [],
     ihc: [], ihcModifier: '', mips: [], caseComment: '', reportText: '',
     updatedAt: new Date().toISOString(),
   };

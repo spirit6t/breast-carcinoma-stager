@@ -155,6 +155,13 @@ export function createEmptyLungCase() {
       ihcDescription:   '',
     },
 
+    // Specimens — all specimen designations + diagnoses
+    // The primary resection specimen is identified by primarySpecimenLetter.
+    // Its final diagnosis block is auto-built from the tumor workup fields.
+    // Secondary specimens (lymph nodes, margins, etc.) carry free diagnosisLines.
+    primarySpecimenLetter: 'A',
+    specimens: [],  // [{ letter, designation, isPrimary, diagnosisLines, comment }]
+
     // IHC entries (for CPT billing)
     ihc:         [],
     ihcModifier: '',

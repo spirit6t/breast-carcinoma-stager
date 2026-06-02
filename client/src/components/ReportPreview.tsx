@@ -251,6 +251,12 @@ export function ReportPreview({ caseState, update }: Props) {
                 { label: 'Laterality',        value: v(c.laterality) },
                 { label: 'Lobe',              value: v(c.lobe) },
               ]} />
+              {(c.specimens || []).length > 0 && (
+                <Section title="Specimens" rows={(c.specimens || []).map((s: any) => ({
+                  label: `${s.letter}${s.isPrimary ? ' (primary)' : ''}`,
+                  value: v(s.designation),
+                }))} />
+              )}
               <Section title="Tumor" rows={[
                 { label: 'Histologic type',   value: v(c.histologicType) },
                 { label: 'Grade',             value: v(c.histologicGrade) },

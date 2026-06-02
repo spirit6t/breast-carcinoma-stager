@@ -13,18 +13,20 @@ function row(label, value) { return value ? `${label}: ${value}` : null; }
 
 // ── Final diagnosis block ─────────────────────────────────────────────────────
 
-function buildFinalDxLine(c) {
+function buildPrimaryDxBlock(c, letter) {
   const lines = [];
 
-  const lat  = up(c.laterality || '');
-  const lobe = LOBE_LABELS[c.lobe] ? up(LOBE_LABELS[c.lobe]) : up(c.lobe || '');
-  const proc = c.resectionType ? up(RESECTION_LABELS[c.resectionType] || c.resectionType) : '';
+  // Use stored designation if available, otherwise build from fields
+  const primarySpec = (c.specimens || []).find(s => s.letter === letter);
+  const designation = primarySpec?.designation
+    || (() => {
+        const lat  = up(c.laterality || '');
+        const lobe = LOBE_LABELS[c.lobe] ? up(LOBE_LABELS[c.lobe]) : up(c.lobe || '');
+        const proc = c.resectionType ? up(RESECTION_LABELS[c.resectionType] || c.resectionType) : '';
+        return ['LUNG', lat, lobe, proc].filter(Boolean).join(', ');
+      })();
 
-  const parts = ['LUNG'];
-  if (lat) parts.push(lat);
-  if (lobe) parts.push(lobe);
-  if (proc) parts.push(proc);
-  lines.push(`A. ${parts.join(', ')}:`);
+  lines.push(`${letter}. ${designation}:`);
 
   // Histologic type + grade
   if (c.histologicType) {
@@ -281,12 +283,43 @@ function buildMipsSummary(c) {
 
 // ── Main assembler ────────────────────────────────────────────────────────────
 
+function renderSecondarySpecimen(spec) {
+  const lines = [];
+  lines.push(`${spec.letter}. ${up(spec.designation)}:`);
+  const dxLines = (spec.diagnosisLines || []).filter(Boolean);
+  for (const dl of dxLines) {
+    lines.push(ind(`- ${up(dl)}`));
+  }
+  if (spec.comment?.trim()) {
+    lines.push('');
+    lines.push(ind(`Comment: ${spec.comment.trim()}`));
+  }
+  return lines.join('\n');
+}
+
 export function assembleLungReport(caseData) {
   const c = caseData;
   const parts = [];
+  const primaryLetter = c.primarySpecimenLetter || 'A';
+
+  // Sort all specimens alphabetically
+  const allSpecimens = (c.specimens || []).slice().sort((a, b) => a.letter.localeCompare(b.letter));
 
   parts.push('FINAL DIAGNOSIS:\n');
-  parts.push(buildFinalDxLine(c));
+
+  if (allSpecimens.length === 0) {
+    // No specimens entered yet — render primary from case fields
+    parts.push(buildPrimaryDxBlock(c, primaryLetter));
+  } else {
+    for (const spec of allSpecimens) {
+      if (spec.isPrimary) {
+        parts.push(buildPrimaryDxBlock(c, spec.letter));
+      } else {
+        parts.push(renderSecondarySpecimen(spec));
+      }
+    }
+  }
+
   parts.push('---');
   parts.push(buildSynoptic(c));
 
