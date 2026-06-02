@@ -74,10 +74,15 @@ function buildPrimaryDxBlock(c, letter) {
   if (c.margins?.invasiveStatus === 'involved' && c.margins.involvedMargins?.length) {
     lines.push(ind(`- MARGIN(S) INVOLVED: ${c.margins.involvedMargins.map(up).join(', ')}`));
   } else if (c.margins?.invasiveStatus === 'all_negative') {
-    const closest = c.margins.closestMargin && c.margins.closestDistanceCm != null
-      ? ` (CLOSEST: ${up(c.margins.closestMargin)}, ${c.margins.closestDistanceCm} CM)`
-      : '';
-    lines.push(ind(`- ALL MARGINS NEGATIVE${closest}`));
+    let closestStr = '';
+    if (c.margins.closestMargin && c.margins.closestDistanceCm != null) {
+      closestStr = ` (CLOSEST: ${up(c.margins.closestMargin)}, ${c.margins.closestDistanceCm} CM)`;
+    } else if (c.margins.closestMargin) {
+      closestStr = ` (CLOSEST: ${up(c.margins.closestMargin)})`;
+    } else if (c.margins.closestDistanceCm != null) {
+      closestStr = ` (CLOSEST MARGIN: ${c.margins.closestDistanceCm} CM)`;
+    }
+    lines.push(ind(`- ALL MARGINS NEGATIVE${closestStr}`));
   }
 
   // Stage
@@ -183,12 +188,22 @@ function buildSynoptic(c) {
   const marginLines = ['MARGINS'];
   if (margins.invasiveStatus) {
     if (margins.invasiveStatus === 'all_negative') {
-      marginLines.push(ind('Margin Status: All margins negative'));
-      if (margins.closestMargin && margins.closestDistanceCm != null) {
-        marginLines.push(ind(`   Closest margin: ${tc(margins.closestMargin)}, ${margins.closestDistanceCm} cm`));
+      marginLines.push(ind('Margin Status for Invasive Tumor: All margins negative'));
+      // Closest margin — show even if distance is missing
+      if (margins.closestMargin) {
+        const distStr = margins.closestDistanceCm != null
+          ? `${margins.closestDistanceCm} cm`
+          : 'distance not specified';
+        marginLines.push(ind(`Closest Margin to Invasive Tumor: ${tc(margins.closestMargin)} (${distStr})`));
+      }
+      if (margins.closestDistanceCm != null && !margins.closestMargin) {
+        marginLines.push(ind(`Distance of Invasive Tumor to Closest Margin: ${margins.closestDistanceCm} cm`));
       }
     } else {
-      marginLines.push(ind(`Margin Status: Margin(s) involved — ${(margins.involvedMargins || []).join(', ')}`));
+      marginLines.push(ind('Margin Status for Invasive Tumor: Margin(s) involved'));
+      if ((margins.involvedMargins || []).length) {
+        marginLines.push(ind(`Margin(s) Involved: ${margins.involvedMargins.join(', ')}`));
+      }
     }
   }
   if (margins.nonInvasiveStatus && margins.nonInvasiveStatus !== 'not_applicable') {
