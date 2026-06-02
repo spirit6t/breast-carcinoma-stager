@@ -6,6 +6,16 @@
 import { computeStageGroup, RESECTION_CPT } from './caseModel.js';
 import { suggestMipsMeasures, MIPS_MEASURES } from '../pathology/mipsBilling.js';
 
+// ── CPT auto-detection for secondary specimens ────────────────────────────────
+// 88307 — Lymph nodes, regional excision (mediastinal stations in lung resection)
+// 88305 — Other tissue specimens (margins, pleura, soft tissue, etc.)
+
+function detectSecondaryLungCpt(designation) {
+  const d = (designation || '').toLowerCase();
+  if (/lymph\s*node|station\s*\d|nodal\s*station/i.test(d)) return '88307';
+  return '88305';
+}
+
 // ── Tool schemas ──────────────────────────────────────────────────────────────
 
 export const LUNG_TOOL_SCHEMAS = [
@@ -19,7 +29,7 @@ export const LUNG_TOOL_SCHEMAS = [
         letter:      { type: 'string', description: 'A, B, C, ...' },
         designation: { type: 'string', description: 'Verbatim designation, e.g. "LUNG, RIGHT UPPER LOBE, LOBECTOMY" or "LYMPH NODES, STATION 4R" or "BRONCHIAL MARGIN, ADDITIONAL"' },
         isPrimary:   { type: 'boolean', description: 'True for the main resection specimen whose diagnosis is built from the CAP workup fields. False for all secondary specimens (lymph nodes, margins, etc.).' },
-        cpt:         { type: 'string', description: 'CPT code for this specimen. Default for secondary specimens: "88305". Use "88307" for wedge/segmentectomy specimens if separately submitted.' },
+        cpt:         { type: 'string', description: 'CPT code. Auto-detected from designation: lymph node stations → "88307" (regional lymph node excision); other tissue → "88305". Override only if needed.' },
         cptLabel:    { type: 'string', description: 'Human-readable CPT label, e.g. "Lymph node, station 4R" or "Bronchial margin".' },
       },
     },
@@ -216,7 +226,7 @@ export async function executeLungTool(name, args, caseData) {
           ? { ...s,
               designation: args.designation || s.designation,
               isPrimary:   args.isPrimary ?? s.isPrimary,
-              cpt:         args.cpt || s.cpt || '88305',
+              cpt:         args.cpt || s.cpt || detectSecondaryLungCpt(args.designation || s.designation || ''),
               cptLabel:    args.cptLabel || s.cptLabel || '',
             }
           : s
@@ -226,8 +236,8 @@ export async function executeLungTool(name, args, caseData) {
           letter,
           designation:    args.designation || '',
           isPrimary:      args.isPrimary ?? false,
-          cpt:            args.isPrimary ? (RESECTION_CPT[c.resectionType] || '88309') : (args.cpt || '88305'),
-          cptLabel:       args.cptLabel || (args.isPrimary ? '' : 'Tissue specimen'),
+          cpt:            args.isPrimary ? (RESECTION_CPT[c.resectionType] || '88309') : (args.cpt || detectSecondaryLungCpt(args.designation || '')),
+          cptLabel:       args.cptLabel || (args.isPrimary ? '' : (args.designation || 'Tissue specimen')),
           diagnosisLines: [],
           comment: '',
         }];
@@ -369,7 +379,7 @@ Ask: "Please list all specimen designations (e.g., A. Lung, right upper lobe, lo
 - Call add_specimen once per specimen, in order.
 - Mark the main resection specimen as isPrimary: true. All others (lymph nodes, margins, additional biopsies) are isPrimary: false.
 - Common secondary specimens: lymph node stations, additional margins (bronchial, vascular), pleural biopsies, mediastinal tissue.
-- Set cpt: "88305" for each secondary specimen (lymph nodes, margins, biopsies). Use cptLabel to describe the specimen (e.g. "Lymph node, station 4R" or "Bronchial margin, additional").
+- CPT for secondary specimens is auto-detected from the designation: lymph node stations → 88307 (regional lymph node excision); margins, biopsies, other tissue → 88305. You can override with an explicit cpt value if needed.
 - Do NOT ask for diagnoses yet — collect all designations first.
 
 ### 2. Procedure (for primary resection specimen)
