@@ -35,11 +35,30 @@ function Section({ title, rows }: { title: string; rows: RowItem[] }) {
   );
 }
 
+/** Replace characters that Meditech / most LIS systems cannot handle. */
+function sanitizeForLIS(text: string): string {
+  return text
+    .replace(/—/g, ' - ')   // em dash  —  → space-hyphen-space
+    .replace(/–/g, '-')     // en dash   –  → hyphen
+    .replace(/‘|’/g, "'")  // smart single quotes
+    .replace(/“|”/g, '"')  // smart double quotes
+    .replace(/•/g, '-')    // bullet •
+    .replace(/·/g, '-')    // middle dot ·
+    .replace(/…/g, '...')  // ellipsis …
+    .replace(/ /g, ' ')    // non-breaking space
+    .replace(/×/g, 'x')    // multiplication sign × → x
+    .replace(/[^\x00-\x7F]/g, (ch) => {
+      // Catch any remaining non-ASCII and drop it (with a fallback space)
+      return ' ';
+    });
+}
+
 export function ReportPreview({ caseState, update }: Props) {
   const [tab, setTab] = useState<Tab>('data');
   const [reportText, setReportText] = useState(caseState.reportText || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [meditech, setMeditech] = useState(false);
   const prevReport = useRef(caseState.reportText);
 
   useEffect(() => {
@@ -414,18 +433,31 @@ export function ReportPreview({ caseState, update }: Props) {
             </button>
             {reportText && (
               <>
-                <button onClick={() => navigator.clipboard.writeText(reportText)}>
+                <button onClick={() => navigator.clipboard.writeText(meditech ? sanitizeForLIS(reportText) : reportText)}>
                   Copy to Clipboard
                 </button>
                 <button
                   className="primary"
-                  onClick={() => downloadText(`breast_${c.receivedDate || 'draft'}.txt`, reportText)}
+                  onClick={() => downloadText(`${c.organ || 'report'}_${c.receivedDate || 'draft'}.txt`, meditech ? sanitizeForLIS(reportText) : reportText)}
                 >
                   Download .txt
                 </button>
               </>
             )}
+            <label className="meditech-toggle" title="Replaces em dashes, en dashes, smart quotes, and other non-ASCII characters that Meditech / LIS systems cannot handle">
+              <input
+                type="checkbox"
+                checked={meditech}
+                onChange={(e) => setMeditech(e.target.checked)}
+              />
+              <span>Meditech-safe</span>
+            </label>
           </div>
+          {meditech && reportText && (
+            <div className="meditech-banner">
+              ⚠ Meditech-safe mode: em dashes, en dashes, smart quotes and other special characters are substituted before copying or downloading.
+            </div>
+          )}
           {!reportText && !loading && (
             <div className="dim" style={{ marginTop: 16 }}>
               No report yet. Click ↻ Render Report or ask the agent to assemble the report.
@@ -434,8 +466,9 @@ export function ReportPreview({ caseState, update }: Props) {
           {reportText && (
             <textarea
               className="report"
-              value={reportText}
-              onChange={(e) => setReportText(e.target.value)}
+              value={meditech ? sanitizeForLIS(reportText) : reportText}
+              onChange={(e) => { if (!meditech) setReportText(e.target.value); }}
+              readOnly={meditech}
               style={{ width: '100%', flex: 1 }}
             />
           )}
