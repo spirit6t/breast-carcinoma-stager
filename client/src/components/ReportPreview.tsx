@@ -110,7 +110,7 @@ export function ReportPreview({ caseState, update }: Props) {
   const bc = (isEndo || isPathology || isProstate || isLung) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
-  const specimenList = c.specimens.length
+  const specimenList = c.specimens?.length
     ? c.specimens.map((s: any) => `${s.letter}. ${s.designation}`).join('; ')
     : null;
 
