@@ -65,15 +65,31 @@ function renderCptSummary(caseData) {
   const ihc = computeIhcBilling(caseData.ihc);
   const lines = ['CPT BILLING SUMMARY'];
 
+  // Tally all codes for the totals line
+  const totals = {};
+  const addCode = (cpt) => { if (cpt) totals[cpt] = (totals[cpt] || 0) + 1; };
+
+  // Per-specimen lines
   for (const s of specimens) {
     const base = `${s.letter}. ${s.designation || ''}${s.cpt ? ` — ${s.cpt}` : ''}`.trim();
     lines.push(base);
+    addCode(s.cpt);
+
     const block = ihc.find((x) => x.specimenLetter === String(s.letter).toUpperCase());
     if (block) {
       const ihcLine = block.entries.map((e) => `${e.antibody} ${e.cpt}`).join(', ');
       lines.push(`   IHC: ${ihcLine}`);
+      block.entries.forEach((e) => addCode(e.cpt));
     }
   }
+
+  // Totals summary
+  const totalParts = Object.keys(totals).sort().map((cpt) => `${cpt} × ${totals[cpt]}`);
+  if (totalParts.length) {
+    lines.push('');
+    lines.push(`TOTALS: ${totalParts.join(', ')}`);
+  }
+
   return lines.join('\n');
 }
 

@@ -28,7 +28,7 @@ export const TOOL_SCHEMAS = [
   {
     name: 'add_specimen',
     description:
-      'Add or update a specimen. Preserve the VERBATIM designation exactly as the pathologist stated it, including all procedure qualifiers after the comma (e.g. "RIGHT BREAST, PARTIAL MASTECTOMY (LUMPECTOMY)" or "ADDITIONAL ANTERIOR-SUPERIOR MARGIN, SHAVE EXCISION"). Auto-suggest CPT: lumpectomy/mastectomy=88307 or 88309, SLN=88307, additional margin=88305.',
+      'Add or update a specimen. Preserve the VERBATIM designation exactly as the pathologist stated it. CPT auto-suggested: lumpectomy/partial mastectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel lymph node → 88307; additional/shave margin (benign) → 88305; additional/shave margin with pathology (carcinoma/DCIS) → 88307.',
     input_schema: {
       type: 'object',
       required: ['letter', 'designation'],
@@ -228,7 +228,7 @@ export function executeTool(name, args, caseData) {
     case 'add_specimen': {
       const letter = String(args.letter || '').toUpperCase();
       if (!letter) return { error: 'letter required' };
-      const cpt = args.cpt || suggestSpecimenCpt(args.designation)?.cpt || null;
+      const cpt = args.cpt || suggestSpecimenCpt(args.designation, args.diagnosis)?.cpt || null;
       const existing = (c.specimens || []).find((s) => s.letter === letter);
       const entry = { letter, designation: args.designation || '', cpt };
       if (existing) Object.assign(existing, entry);
@@ -353,8 +353,8 @@ BLOCK 2 — SPECIMENS (A, B, C …)
 • Capture each one VERBATIM — preserve the full designation including the procedure suffix (e.g. "RIGHT BREAST, PARTIAL MASTECTOMY (LUMPECTOMY)", "ADDITIONAL ANTERIOR-SUPERIOR MARGIN, SHAVE EXCISION", "LEFT AXILLA, SENTINEL LYMPH NODE BIOPSY").
 • When the pathologist provides a formatted list (e.g. "A. RIGHT BREAST, LUMPECTOMY / B. ANTERIOR MARGIN, SHAVE"), parse each lettered entry and call add_specimen once per specimen.
 • NEVER abbreviate, simplify, or paraphrase the designation — use the exact text provided.
-• Auto-suggest CPT: lumpectomy/mastectomy → 88307 or 88309, sentinel node → 88307, additional margin → 88305.
-Tool: add_specimen (letter, designation, optional cpt)
+• Auto-suggest CPT: lumpectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel node → 88307; additional/shave margin benign → 88305; additional/shave margin with carcinoma/DCIS → 88307.
+Tool: add_specimen (letter, designation, optional cpt override)
 
 BLOCK 3 — HISTOLOGIC TYPE & NOTTINGHAM GRADE (invasive mode)
 • Histologic type (invasive ductal NST, lobular, mucinous, etc.)
