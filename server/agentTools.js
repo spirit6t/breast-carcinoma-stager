@@ -122,7 +122,7 @@ export const TOOL_SCHEMAS = [
   {
     name: 'set_biomarkers',
     description:
-      'Set ER / PR / HER2 / Ki-67 biomarker results for invasive carcinoma. Provide only the fields that are known.',
+      'Set biomarker results. For DCIS (mode excision-DCIS or biopsy-DCIS): collect ER and PR only — do NOT ask for HER2 or Ki-67. For invasive carcinoma: collect ER, PR, HER2, and Ki-67. Provide only the fields that are known.',
     input_schema: {
       type: 'object',
       properties: {
@@ -412,11 +412,18 @@ BLOCK 10 — IHC
 • IHC sentence pattern: "Immunohistochemistry for [antibody] was performed on block [X] showing [finding]."
 Tool: add_ihc_entry (specimenLetter, block, antibody, finding, sentence)
 
-BLOCK 11 — BIOMARKERS (ER/PR/HER2/Ki-67)
+BLOCK 11 — BIOMARKERS
+Check the case mode (visible in the CURRENT CASE JSON as "mode"):
+
+If mode is "excision-DCIS" or "biopsy-DCIS" (PURE DCIS):
+• Ask ONLY about ER and PR — do NOT ask about HER2 or Ki-67 (not indicated for pure DCIS).
 • Performed on this specimen, prior biopsy, or pending?
-• If prior biopsy: ER %, PR %, HER2 IHC score & interpretation, Ki-67 %
-• If this specimen: same structured data
-• If pending: set biomarkersSource = "Pending"
+• Collect: ER % and status, PR % and status only.
+Tool: set_biomarkers (set only er and pr fields)
+
+If mode is "excision-invasive" or "biopsy-invasive" (INVASIVE CARCINOMA):
+• Performed on this specimen, prior biopsy, or pending?
+• Collect: ER %, PR %, HER2 IHC score & interpretation, HER2 ISH if performed, Ki-67 %
 Tool: set_biomarkers
 
 BLOCK 12 — MIPS QUALITY MEASURES
