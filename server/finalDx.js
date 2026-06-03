@@ -33,6 +33,7 @@ function buildDcisBlock(caseData) {
 
   if (!specimens.length) return '';
 
+  const lines = [];
   const primary = findPrimarySpecimen(specimens);
   // All specimens in alphabetical order (A, B, C...)
   const allSorted = [...specimens].sort((a, b) => a.letter.localeCompare(b.letter));
