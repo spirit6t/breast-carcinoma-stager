@@ -7,6 +7,7 @@ import { RESECTION_LABELS, LOBE_LABELS, RESECTION_CPT } from './caseModel.js';
 import { computePathologyIhcBilling } from '../pathology/cptBilling.js';
 
 function up(s) { return s ? String(s).toUpperCase() : ''; }
+function norm(s) { return s ? String(s).replace(/\\n/g, '\n').replace(/\\t/g, '\t') : ''; }
 function tc(s) { return s ? String(s).replace(/\b\w/g, c => c.toUpperCase()) : ''; }
 function ind(s) { return `   ${s}`; }
 function row(label, value) { return value ? `${label}: ${value}` : null; }
@@ -341,7 +342,7 @@ function renderSecondarySpecimen(spec) {
   lines.push(`${spec.letter}. ${up(spec.designation)}:`);
   const dxLines = (spec.diagnosisLines || []).filter(Boolean);
   for (const dl of dxLines) {
-    lines.push(ind(`- ${up(dl)}`));
+    lines.push(ind(`- ${up(norm(dl))}`));
   }
   if (spec.comment?.trim()) {
     lines.push('');

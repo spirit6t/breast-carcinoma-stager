@@ -19,6 +19,7 @@
  */
 
 function up(s) { return s ? String(s).toUpperCase() : ''; }
+function norm(s) { return s ? String(s).replace(/\\n/g, '\n').replace(/\\t/g, '\t') : ''; }
 function indent(s) { return `      ${s}`; }
 function bullet(s) { return `         - ${up(s)}`; }
 

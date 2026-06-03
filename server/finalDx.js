@@ -7,6 +7,11 @@ function upper(s) {
   return s ? String(s).toUpperCase() : '';
 }
 
+/** Replace literal \n / \t escape sequences with real whitespace before rendering. */
+function norm(s) {
+  return s ? String(s).replace(/\\n/g, '\n').replace(/\\t/g, '\t') : '';
+}
+
 function joinList(arr, fallback = '') {
   const clean = (arr || []).filter((x) => x && String(x).trim());
   return clean.length ? clean.join(' AND ') : fallback;
@@ -90,7 +95,7 @@ function buildDcisBlock(caseData) {
     } else {
       const h = `${s.letter}. ${upper(s.designation || '')}:`;
       const dx = s.diagnosis && s.diagnosis.trim()
-        ? upper(s.diagnosis.trim())
+        ? upper(norm(s.diagnosis.trim()))
         : 'NEGATIVE FOR DCIS AND INVASIVE CARCINOMA';
       blocks.push(`${h}\n${dx}`);
     }
@@ -261,7 +266,7 @@ function buildInvasiveBlock(caseData) {
     } else {
       const h = `${s.letter}. ${upper(s.designation || '')}:`;
       const dx = s.diagnosis && s.diagnosis.trim()
-        ? upper(s.diagnosis.trim())
+        ? upper(norm(s.diagnosis.trim()))
         : 'NEGATIVE FOR INVASIVE CARCINOMA AND DCIS';
       blocks.push(`${h}\n${dx}`);
     }

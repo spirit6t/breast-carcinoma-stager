@@ -17,6 +17,9 @@ import { formatMipsSummary } from './mipsBilling.js';
 function upper(s) {
   return s ? String(s).toUpperCase() : '';
 }
+function norm(s) {
+  return s ? String(s).replace(/\\n/g, '\n').replace(/\\t/g, '\t') : '';
+}
 
 /**
  * Render a single specimen block.
@@ -58,7 +61,7 @@ function renderSpecimen(s, hasCaseComment) {
   }
 
   for (const dl of dxLines) {
-    lines.push(`      -     ${upper(dl)}`);
+    lines.push(`      -     ${upper(norm(dl))}`);
   }
 
   // Biomarker bullet — auto-injected after diagnosis lines
