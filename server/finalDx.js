@@ -28,14 +28,13 @@ function buildDcisBlock(caseData) {
 
   if (!specimens.length) return '';
 
-  const lines = [];
   const primary = findPrimarySpecimen(specimens);
-  const secondaries = specimens
-    .filter(s => s.letter !== primary.letter)
-    .sort((a, b) => a.letter.localeCompare(b.letter));
-  const primaryDesignation = primary ? primary.designation || '' : '';
+  // All specimens in alphabetical order (A, B, C...)
+  const allSorted = [...specimens].sort((a, b) => a.letter.localeCompare(b.letter));
+
   const procedure = cap.specimen?.procedure || '';
   const laterality = cap.specimen?.laterality || '';
+  const primaryDesignation = primary ? primary.designation || '' : '';
 
   const dxHeader = [
     `${primary.letter}. BREAST${laterality ? `, ${upper(laterality)}` : ''}${procedure ? `, ${upper(procedure)}` : (primaryDesignation ? `, ${upper(primaryDesignation)}` : '')}:`,
@@ -56,7 +55,9 @@ function buildDcisBlock(caseData) {
       ? `, WITH ${[necrosisText, calcText].filter(Boolean).join(' AND ')}`
       : '');
 
-  const stageParts = [stg.ptCategory, stg.pnCategory, stg.pmCategory].filter(Boolean);
+  // Omit pN when not assigned (no nodes submitted)
+  const pnDcis = stg.pnCategory && !/not\s+assigned/i.test(stg.pnCategory) ? stg.pnCategory : null;
+  const stageParts = [stg.ptCategory, pnDcis, stg.pmCategory].filter(Boolean);
   const stageLine = stageParts.length ? `PATHOLOGIC STAGE: ${stageParts.join(', ')}` : '';
 
   const clipLine = `PREVIOUS BIOPSY SITE CHANGES${clip ? ` AND ${upper(clip)} CLIP` : ' AND CLIP'} PRESENT`;
@@ -81,14 +82,18 @@ function buildDcisBlock(caseData) {
     'SEE SYNOPTIC REPORT FOR TUMOR CHARACTERISTICS'
   );
 
-  const blocks = [lines.filter(Boolean).join('\n')];
-
-  for (const s of secondaries) {
-    const h = `${s.letter}. ${upper(s.designation || '')}:`;
-    const dx = s.diagnosis && s.diagnosis.trim()
-      ? upper(s.diagnosis.trim())
-      : 'NEGATIVE FOR DCIS AND INVASIVE CARCINOMA';
-    blocks.push(`${h}\n${dx}`);
+  // Render all specimens in A→B→C order; primary gets full block, others get dx line
+  const blocks = [];
+  for (const s of allSorted) {
+    if (s.letter === primary.letter) {
+      blocks.push(lines.filter(Boolean).join('\n'));
+    } else {
+      const h = `${s.letter}. ${upper(s.designation || '')}:`;
+      const dx = s.diagnosis && s.diagnosis.trim()
+        ? upper(s.diagnosis.trim())
+        : 'NEGATIVE FOR DCIS AND INVASIVE CARCINOMA';
+      blocks.push(`${h}\n${dx}`);
+    }
   }
 
   return blocks.join('\n\n');
@@ -130,9 +135,8 @@ function buildInvasiveBlock(caseData) {
 
   const blocks = [];
   const primary = findPrimarySpecimen(specimens);
-  const secondaries = specimens
-    .filter(s => s.letter !== primary.letter)
-    .sort((a, b) => a.letter.localeCompare(b.letter));
+  // All specimens in alphabetical order (A, B, C...)
+  const allSorted = [...specimens].sort((a, b) => a.letter.localeCompare(b.letter));
   const procedure = cap.specimen?.procedure || '';
   const laterality = cap.specimen?.laterality || '';
 
@@ -154,9 +158,13 @@ function buildInvasiveBlock(caseData) {
   let dcisLine = '';
   if (dcisAssoc) {
     const dcisGrade = t.dcisGrade ? `, ${upper(t.dcisGrade)}` : '';
-    const dcisExtent = t.dcisExtentMm != null && t.dcisExtentMm !== ''
-      ? `, EXTENT ${t.dcisExtentMm} MM`
-      : '';
+    // Auto-calculate DCIS extent: blocks with DCIS × 4 mm (if not explicitly set)
+    const computedDcisExtent = (t.dcisExtentMm != null && t.dcisExtentMm !== '')
+      ? Number(t.dcisExtentMm)
+      : (t.blocksWithDCIS != null && t.blocksWithDCIS !== '')
+      ? Number(t.blocksWithDCIS) * 4
+      : null;
+    const dcisExtent = computedDcisExtent != null ? `, EXTENT ${computedDcisExtent} MM` : '';
     const eic = t.extensiveIntraductalComponent === true ? '; EXTENSIVE INTRADUCTAL COMPONENT' : '';
     dcisLine = `WITH ASSOCIATED DUCTAL CARCINOMA IN SITU${dcisGrade}${dcisExtent}${eic}`;
   }
@@ -164,12 +172,13 @@ function buildInvasiveBlock(caseData) {
   const stageBits = [];
   if (stg.yPrefix) stageBits.push('y');
   if (stg.rPrefix) stageBits.push('r');
+  const pfx = stg.yPrefix ? 'y' : stg.rPrefix ? 'r' : 'p';
   const ptDisplay = stg.ptCategory
-    ? `${(stg.yPrefix ? 'y' : (stg.rPrefix ? 'r' : 'p'))}${stg.ptCategory.replace(/^p/, '')}${stg.mModifier ? ' (m)' : ''}`
+    ? `${pfx}${stg.ptCategory.replace(/^p/, '')}${stg.mModifier ? ' (m)' : ''}`
     : '';
-  const pnDisplay = stg.pnCategory
-    ? `${(stg.yPrefix ? 'y' : (stg.rPrefix ? 'r' : 'p'))}${stg.pnCategory.replace(/^p/, '')}`
-    : '';
+  // Omit pN when "not assigned" (no nodes submitted)
+  const pnRaw = stg.pnCategory && !/not\s+assigned/i.test(stg.pnCategory) ? stg.pnCategory : null;
+  const pnDisplay = pnRaw ? `${pfx}${pnRaw.replace(/^p/, '')}` : '';
   const pmDisplay = stg.pmCategory && !/not\s+applicable/i.test(stg.pmCategory) ? stg.pmCategory : '';
   const stageParts = [ptDisplay, pnDisplay, pmDisplay].filter(Boolean);
   const stageLine = stageParts.length ? `PATHOLOGIC STAGE: ${stageParts.join(', ')}` : '';
@@ -245,14 +254,17 @@ function buildInvasiveBlock(caseData) {
     'SEE SYNOPTIC REPORT FOR TUMOR CHARACTERISTICS',
   ].filter(Boolean);
 
-  blocks.push(lines.join('\n'));
-
-  for (const s of secondaries) {
-    const h = `${s.letter}. ${upper(s.designation || '')}:`;
-    const dx = s.diagnosis && s.diagnosis.trim()
-      ? upper(s.diagnosis.trim())
-      : 'NEGATIVE FOR INVASIVE CARCINOMA AND DCIS';
-    blocks.push(`${h}\n${dx}`);
+  // Render all specimens in A→B→C order; primary gets full block, others get dx line
+  for (const s of allSorted) {
+    if (s.letter === primary.letter) {
+      blocks.push(lines.join('\n'));
+    } else {
+      const h = `${s.letter}. ${upper(s.designation || '')}:`;
+      const dx = s.diagnosis && s.diagnosis.trim()
+        ? upper(s.diagnosis.trim())
+        : 'NEGATIVE FOR INVASIVE CARCINOMA AND DCIS';
+      blocks.push(`${h}\n${dx}`);
+    }
   }
 
   return blocks.join('\n\n');
