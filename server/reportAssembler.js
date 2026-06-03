@@ -62,28 +62,44 @@ function renderIhcComments(caseData) {
 
 function renderCptSummary(caseData) {
   const specimens = caseData.specimens || [];
-  const ihc = computeIhcBilling(caseData.ihc);
+  const ihcBilling = computeIhcBilling(caseData.ihc);
   const lines = ['CPT BILLING SUMMARY'];
 
-  // Tally all codes for the totals line
   const totals = {};
   const addCode = (cpt) => { if (cpt) totals[cpt] = (totals[cpt] || 0) + 1; };
 
-  // Per-specimen lines
+  // Per-specimen lines (specimen CPT + inline IHC display)
+  const matchedIhcLetters = new Set();
   for (const s of specimens) {
     const base = `${s.letter}. ${s.designation || ''}${s.cpt ? ` — ${s.cpt}` : ''}`.trim();
     lines.push(base);
     addCode(s.cpt);
 
-    const block = ihc.find((x) => x.specimenLetter === String(s.letter).toUpperCase());
+    const block = ihcBilling.find((x) => x.specimenLetter === String(s.letter).toUpperCase());
     if (block) {
       const ihcLine = block.entries.map((e) => `${e.antibody} ${e.cpt}`).join(', ');
       lines.push(`   IHC: ${ihcLine}`);
-      block.entries.forEach((e) => addCode(e.cpt));
+      matchedIhcLetters.add(block.specimenLetter);
     }
   }
 
-  // Totals summary
+  // Show IHC for any unmatched specimen letters (e.g. letter not in specimens list)
+  for (const block of ihcBilling) {
+    if (!matchedIhcLetters.has(block.specimenLetter)) {
+      const label = block.specimenLetter ? `Spec. ${block.specimenLetter}` : 'IHC';
+      const ihcLine = block.entries.map((e) => `${e.antibody} ${e.cpt}`).join(', ');
+      lines.push(`   ${label} IHC: ${ihcLine}`);
+    }
+  }
+
+  // Count ALL IHC codes regardless of specimen matching
+  for (const block of ihcBilling) {
+    for (const e of block.entries) {
+      addCode(e.cpt);
+    }
+  }
+
+  // Totals — all codes sorted
   const totalParts = Object.keys(totals).sort().map((cpt) => `${cpt} × ${totals[cpt]}`);
   if (totalParts.length) {
     lines.push('');
