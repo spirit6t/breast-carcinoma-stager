@@ -252,6 +252,15 @@ export function renderCapSynopticInvasive(caseData) {
     if (n.sentinelExamined != null && n.sentinelExamined !== '') {
       add(`Number of Sentinel Nodes Examined: ${n.sentinelExamined}`);
     }
+
+    // (sn) modifier: applies when sentinel nodes were submitted AND total nodes < 6
+    const sentinelCount = Number(n.sentinelExamined) || 0;
+    const totalCount    = total != null ? Number(total) : null;
+    const snApplies     = sentinelCount > 0 && (totalCount === null || totalCount < 6);
+    if (snApplies) {
+      add('Regional Lymph Node Modifier: (sn) — Sentinel nodes evaluated');
+      add('  Note: Fewer than 6 nodes removed; (sn) suffix applies to pN category');
+    }
   }
   add('');
 
@@ -281,10 +290,25 @@ export function renderCapSynopticInvasive(caseData) {
     const key  = normalizePn(stg.pnCategory);
     const rawN = key.replace(/^p/, '');
     const desc = PN_DESC[key] || '';
-    add(`pN Category: ${pfx}p${rawN}${desc ? `: ${desc}` : ''}`);
+
+    // Auto-detect (sn) modifier for pN display
+    const snTotal    = n.totalExamined != null ? Number(n.totalExamined) : null;
+    const snSentinel = n.sentinelExamined != null ? Number(n.sentinelExamined) : 0;
+    const snSuffix   = (n.nSuffix || []).includes('sn') ||
+                       (snSentinel > 0 && (snTotal === null || snTotal < 6));
+    const snTag      = snSuffix ? '(sn)' : '';
+
+    add(`pN Category: ${pfx}p${rawN}${snTag}${desc ? `: ${desc}` : ''}`);
+
+    // Render any explicitly set suffixes (f, sn) — skip (sn) if already auto-shown
     for (const suf of n.nSuffix || []) {
+      if (suf === 'sn' && snSuffix) continue; // already shown inline
       const sd = N_SUFFIX_DESC[suf] || '';
       add(`N Suffix: (${suf})${sd ? `: ${sd}` : ''}`);
+    }
+    if (snSuffix && !(n.nSuffix || []).includes('sn')) {
+      const sd = N_SUFFIX_DESC['sn'] || '';
+      add(`N Suffix: (sn)${sd ? `: ${sd}` : ''}`);
     }
   }
 
