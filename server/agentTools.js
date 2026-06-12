@@ -28,7 +28,7 @@ export const TOOL_SCHEMAS = [
   {
     name: 'add_specimen',
     description:
-      'Add or update a specimen. Preserve the VERBATIM designation exactly as the pathologist stated it. CPT auto-suggested: lumpectomy/partial mastectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel lymph node → 88307; additional/shave margin (benign) → 88305; additional/shave margin with pathology (carcinoma/DCIS) → 88307.',
+      'Add or update a specimen. Preserve the VERBATIM designation exactly as the pathologist stated it. CPT auto-suggested: frozen section / intraoperative consult → 88331 (88332 add-on for each additional site same specimen); lumpectomy/partial mastectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel lymph node → 88307; additional/shave margin (benign) → 88305; additional/shave margin with pathology (carcinoma/DCIS) → 88307.',
     input_schema: {
       type: 'object',
       required: ['letter', 'designation'],
@@ -228,9 +228,11 @@ export function executeTool(name, args, caseData) {
     case 'add_specimen': {
       const letter = String(args.letter || '').toUpperCase();
       if (!letter) return { error: 'letter required' };
-      const cpt = args.cpt || suggestSpecimenCpt(args.designation, args.diagnosis)?.cpt || null;
+      const billing = suggestSpecimenCpt(args.designation, args.diagnosis);
+      const cpt = args.cpt || billing?.cpt || null;
+      const cptAddons = args.cptAddons || billing?.cptAddons || [];
       const existing = (c.specimens || []).find((s) => s.letter === letter);
-      const entry = { letter, designation: args.designation || '', cpt };
+      const entry = { letter, designation: args.designation || '', cpt, cptAddons };
       if (existing) Object.assign(existing, entry);
       else c.specimens = [...(c.specimens || []), entry];
       c.specimens.sort((a, b) => a.letter.localeCompare(b.letter));

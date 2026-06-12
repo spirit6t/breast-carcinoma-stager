@@ -287,6 +287,7 @@ function buildCptSummary(c) {
     '88307': 'Lung wedge/segmentectomy or lymph node, regional excision',
     '88305': 'Tissue specimen',
     '88331': 'Frozen section consultation (intraoperative)',
+    '88332': 'Frozen section add-on (each additional block, same specimen)',
   };
 
   const primaryCpt   = RESECTION_CPT[c.resectionType] || '88309';
@@ -299,6 +300,9 @@ function buildCptSummary(c) {
     const cpt   = spec.cpt || '88305';
     const label = spec.cptLabel || CPT_LABELS[cpt] || 'Tissue specimen';
     addCode(cpt, label);
+    for (const addon of (spec.cptAddons || [])) {
+      addCode(addon, CPT_LABELS[addon] || addon);
+    }
   }
 
   // IHC stains

@@ -75,6 +75,11 @@ function renderCptSummary(caseData) {
     lines.push(base);
     addCode(s.cpt);
 
+    for (const addon of (s.cptAddons || [])) {
+      addCode(addon);
+      lines.push(`   Add-on: ${addon} (frozen section, additional block)`);
+    }
+
     const block = ihcBilling.find((x) => x.specimenLetter === String(s.letter).toUpperCase());
     if (block) {
       const ihcLine = block.entries.map((e) => `${e.antibody} ${e.cpt}`).join(', ');

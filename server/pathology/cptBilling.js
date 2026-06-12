@@ -147,6 +147,17 @@ export function suggestPathologyCpt(designation) {
     return { category: 'cytology', cpt: '88104', label: 'Cytopathology smears', addons: [] };
   }
 
+  // Frozen section — takes priority over all tissue type rules
+  if (/frozen[\s-]?section|\bintraoperative[\s-]?consult/i.test(designation)) {
+    const siteMatch = designation.match(/[×x]\s*(\d+)|(\d+)\s*(?:sites?|blocks?|sections?|pieces?)/i);
+    const siteCount = siteMatch ? parseInt(siteMatch[1] || siteMatch[2], 10) : 1;
+    const addons = [];
+    for (let i = 1; i < siteCount; i++) {
+      addons.push({ cpt: '88332', label: 'Frozen section add-on (each additional block, same specimen)' });
+    }
+    return { category: 'surgical', cpt: '88331', label: 'Frozen section consultation (intraoperative)', addons };
+  }
+
   // Surgical path — also check if there's a cytology component (touch prep)
   let result = null;
   for (const rule of SURGICAL_CPT_RULES) {
@@ -256,6 +267,22 @@ export function formatCptSummary(specimens, ihcEntries = [], ihcModifier = '') {
 
       lines.push(`   Spec. ${spec.specimenLetter} [${total} stain${total !== 1 ? 's' : ''}]: ${parts.join(', ')}`);
     }
+  }
+
+  // Totals across all specimen + IHC codes
+  const totals = {};
+  const tally = (code) => { if (code) totals[code] = (totals[code] || 0) + 1; };
+  for (const s of specimens) {
+    tally(s.cpt);
+    for (const addon of (s.cptAddons || [])) tally(addon);
+  }
+  const ihcTotals = computePathologyIhcBilling(ihcEntries, ihcModifier);
+  for (const spec of ihcTotals) {
+    for (const e of spec.entries) tally(e.cpt);
+  }
+  if (Object.keys(totals).length) {
+    lines.push('');
+    lines.push(`TOTALS: ${Object.keys(totals).sort().map(c => `${c} × ${totals[c]}`).join(', ')}`);
   }
 
   return lines.join('\n');

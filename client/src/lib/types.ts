@@ -8,6 +8,7 @@ export interface Specimen {
   letter: string;
   designation: string;
   cpt: string | null;
+  cptAddons?: string[];
   diagnosis: string;
 }
 
@@ -249,7 +250,7 @@ export interface ProstateBiopsySpecimen {
   letter:        string;
   designation:   string;
   location:      string;
-  hasCarcinoma:  boolean | null;
+  hasCarcinoma:  boolean | 'atypical' | null;
   histologicType:             string;
   gleasonPrimary:             number | null;
   gleasonSecondary:           number | null;
@@ -362,6 +363,7 @@ export interface LungCaseData {
     isPrimary: boolean;
     cpt: string;
     cptLabel: string;
+    cptAddons: string[];
     diagnosisLines: string[];
     comment: string;
   }>;

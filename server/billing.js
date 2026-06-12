@@ -21,6 +21,8 @@
 // Evaluated in order — first match wins.
 
 const SPECIMEN_RULES = [
+  // Frozen section — intraoperative consultation (check before tissue type rules)
+  { match: /frozen[\s-]?section|\bintraoperative[\s-]?consult/i,        cpt: '88331', label: 'Frozen section consultation (intraoperative)' },
   // Endometrial / gynecologic
   { match: /hysterectomy/i,                                              cpt: '88309', label: 'Hysterectomy (neoplasm)' },
   // Mastectomy — radical / modified radical first
@@ -52,9 +54,16 @@ export function suggestSpecimenCpt(designation, diagnosis) {
     if (rule.match.test(designation)) {
       // Shave/additional margin upgrade: if pathology (carcinoma or DCIS) is present → 88307
       if (rule.cpt === '88305' && diagnosis && /carcinoma|dcis|malignant|invasive/i.test(diagnosis)) {
-        return { cpt: '88307', label: 'Additional / shave margin (with pathology)' };
+        return { cpt: '88307', label: 'Additional / shave margin (with pathology)', cptAddons: [] };
       }
-      return { cpt: rule.cpt, label: rule.label };
+      // Frozen section: detect multiple sites on same specimen → 88332 add-ons
+      const cptAddons = [];
+      if (rule.cpt === '88331') {
+        const siteMatch = designation.match(/[×x]\s*(\d+)|(\d+)\s*(?:sites?|blocks?|sections?)/i);
+        const siteCount = siteMatch ? parseInt(siteMatch[1] || siteMatch[2], 10) : 1;
+        for (let i = 1; i < siteCount; i++) cptAddons.push('88332');
+      }
+      return { cpt: rule.cpt, label: rule.label, cptAddons };
     }
   }
   return null;

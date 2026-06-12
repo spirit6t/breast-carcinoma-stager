@@ -13,9 +13,15 @@ import { suggestMipsMeasures, MIPS_MEASURES } from '../pathology/mipsBilling.js'
 
 function detectSecondaryLungCpt(designation) {
   const d = (designation || '').toLowerCase();
-  if (/frozen|\bFS\b|intraoperative\s+consult|intra-?op/i.test(designation || '')) return '88331';
-  if (/lymph\s*node|station\s*\d|nodal\s*station/i.test(d)) return '88307';
-  return '88305';
+  if (/frozen|\bFS\b|intraoperative\s+consult|intra-?op/i.test(designation || '')) {
+    const siteMatch = designation.match(/[×x]\s*(\d+)|(\d+)\s*(?:sites?|blocks?|sections?)/i);
+    const siteCount = siteMatch ? parseInt(siteMatch[1] || siteMatch[2], 10) : 1;
+    const cptAddons = [];
+    for (let i = 1; i < siteCount; i++) cptAddons.push('88332');
+    return { cpt: '88331', cptAddons };
+  }
+  if (/lymph\s*node|station\s*\d|nodal\s*station/i.test(d)) return { cpt: '88307', cptAddons: [] };
+  return { cpt: '88305', cptAddons: [] };
 }
 
 // ── Tool schemas ──────────────────────────────────────────────────────────────
@@ -237,22 +243,27 @@ export async function executeLungTool(name, args, caseData) {
       if (!letter) return { error: 'add_specimen: letter is required' };
       const existing = (c.specimens || []).find(s => s.letter === letter);
       if (existing) {
+        const detected = detectSecondaryLungCpt(args.designation || existing.designation || '');
         c.specimens = c.specimens.map(s => s.letter === letter
           ? { ...s,
               designation: args.designation || s.designation,
               isPrimary:   args.isPrimary ?? s.isPrimary,
-              cpt:         args.cpt || s.cpt || detectSecondaryLungCpt(args.designation || s.designation || ''),
+              cpt:         args.cpt || s.cpt || detected.cpt,
               cptLabel:    args.cptLabel || s.cptLabel || '',
+              cptAddons:   args.cptAddons || s.cptAddons || detected.cptAddons || [],
             }
           : s
         );
       } else {
+        const detected = args.isPrimary ? { cpt: RESECTION_CPT[c.resectionType] || '88309', cptAddons: [] }
+                                        : detectSecondaryLungCpt(args.designation || '');
         c.specimens = [...(c.specimens || []), {
           letter,
           designation:    args.designation || '',
           isPrimary:      args.isPrimary ?? false,
-          cpt:            args.isPrimary ? (RESECTION_CPT[c.resectionType] || '88309') : (args.cpt || detectSecondaryLungCpt(args.designation || '')),
+          cpt:            args.isPrimary ? detected.cpt : (args.cpt || detected.cpt),
           cptLabel:       args.cptLabel || (args.isPrimary ? '' : (args.designation || 'Tissue specimen')),
+          cptAddons:      args.isPrimary ? [] : (args.cptAddons || detected.cptAddons || []),
           diagnosisLines: [],
           comment: '',
         }];
