@@ -54,11 +54,11 @@ function renderMalignantSpecimen(s, hasHighGradeElsewhere) {
     lines.push(indent(`IDC INCORPORATED INTO GRADE: ${up(s.idcIncorporatedIntoGrade || 'No')}`));
   }
 
-  // Cribriform glands — applicable to GG2/GG3/GG4 (score 7–8)
+  // Cribriform glands — shown only for GG2/GG3/GG4 (Gleason score 7–8)
   const gg = s.gradeGroup;
   if (gg && gg >= 2 && gg <= 4) {
     const crib = s.cribriformGlands || 'Not identified';
-    lines.push(indent(`CRIBRIFORM GLANDS (APPLICABLE TO GLEASON SCORE 7-8 CANCER ONLY): ${up(crib)}`));
+    lines.push(indent(`CRIBRIFORM GLANDS: ${up(crib)}`));
   }
 
   // Tumor quantitation
@@ -132,9 +132,50 @@ function renderBenignSpecimen(s) {
   return lines.join('\n');
 }
 
+/**
+ * Render a specimen with an ASAP (atypical) diagnosis.
+ * Outputs the full standardized ASAP line regardless of how the pathologist
+ * phrased it ("Atypical", "Atypical glands", etc.).
+ */
+function renderAsapSpecimen(s) {
+  const lines = [];
+  lines.push(`${s.letter}. ${up(s.designation)}:`);
+  lines.push(indent('ATYPICAL SMALL ACINAR PROLIFERATION SUSPICIOUS BUT NOT DIAGNOSTIC OF MALIGNANCY (ASAP)'));
+
+  // PIN4 IHC — full standardized paragraph if performed
+  if (s.pin4Performed) {
+    const blockRef   = s.pin4Block ? `block ${s.pin4Block}` : 'block ***';
+    const isPositive = /positive|amacr\+/i.test(s.pin4Result || '');
+    const isNegative = /negative/i.test(s.pin4Result || '');
+    let pin4Para;
+    if (isPositive) {
+      pin4Para =
+        `Specimen ${s.letter} was evaluated with a PIN immunohistochemical multiplex stain ` +
+        `(p63, cytokeratin 34betaE12, AMACR) performed on ${blockRef} to assess small infiltrating glands. ` +
+        `These glands have no identifiable basal cells by p63 and cytokeratin 34betaE12 with positive ` +
+        `luminal AMACR staining, supporting a diagnosis of carcinoma. All controls stain appropriately.`;
+    } else if (isNegative) {
+      pin4Para =
+        `Specimen ${s.letter} was evaluated with a PIN immunohistochemical multiplex stain ` +
+        `(p63, cytokeratin 34betaE12, AMACR) performed on ${blockRef} to assess small infiltrating glands. ` +
+        `These glands demonstrate intact basal cells by p63 and cytokeratin 34betaE12 with absent AMACR ` +
+        `staining, not supporting carcinoma. All controls stain appropriately.`;
+    } else {
+      pin4Para =
+        `Specimen ${s.letter} was evaluated with a PIN immunohistochemical multiplex stain ` +
+        `(p63, cytokeratin 34betaE12, AMACR) performed on ${blockRef}. ` +
+        `${(s.pin4Result || '').trim()} All controls stain appropriately.`;
+    }
+    lines.push('');
+    lines.push(indent(`PIN4 IMMUNOHISTOCHEMISTRY: ${pin4Para}`));
+  }
+
+  return lines.join('\n');
+}
+
 function renderCaseSummary(caseData, specimens) {
-  // Compute case-level highest grade from all malignant specimens
-  const malignant = specimens.filter(s => s.hasCarcinoma);
+  // Compute case-level highest grade from all malignant specimens (exclude benign + atypical/ASAP)
+  const malignant = specimens.filter(s => s.hasCarcinoma === true);
   if (!malignant.length) return '';
 
   const highest = malignant.reduce((best, s) => {
@@ -267,6 +308,8 @@ export function assembleProstateBiopsyReport(caseData) {
   for (const s of specimens) {
     if (s.hasCarcinoma === true) {
       parts.push(renderMalignantSpecimen(s, hasHighGradeElsewhere && (s.gradeGroup ?? 0) < 4));
+    } else if (s.hasCarcinoma === 'atypical') {
+      parts.push(renderAsapSpecimen(s));
     } else if (s.hasCarcinoma === false) {
       parts.push(renderBenignSpecimen(s));
     } else {
