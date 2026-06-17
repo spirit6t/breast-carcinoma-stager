@@ -375,7 +375,52 @@ export interface LungCaseData {
   updatedAt: string;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData;
+export interface PlacentaComponentFinding {
+  normal: boolean;
+  line: string;
+}
+
+export interface PlacentaWeightPercentile {
+  weeks: number;
+  weightG: number;
+  band: string | null;
+  label: string;
+  isSmall: boolean;
+  isLarge: boolean;
+  p10: number | null;
+  p90: number | null;
+  source: 'A-1' | 'A-2' | null;
+  outOfRange?: boolean;
+}
+
+export interface PlacentaCaseData {
+  version: number;
+  organ: 'placenta';
+  mode: 'placenta-singleton';
+  receivedDate: string | null;
+  specimenDesignation: string;
+  gestationalAgeWeeks: number | null;
+  deliveryMethod: 'vaginal' | 'assisted_vaginal' | 'cesarean' | 'other' | null;
+  deliveryMethodOther: string;
+  clinicalHistory: string;
+  placentaWeightG: number | null;
+  weightPercentile: PlacentaWeightPercentile | null;
+  cordVessels: number;
+  findings: {
+    cord: PlacentaComponentFinding;
+    membranes: PlacentaComponentFinding;
+    disc: PlacentaComponentFinding;
+    villiDecidua: PlacentaComponentFinding;
+  };
+  additionalDiagnosisLines: string[];
+  caseComment: string;
+  references: string[];
+  cpt: string;
+  reportText: string;
+  updatedAt: string;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';

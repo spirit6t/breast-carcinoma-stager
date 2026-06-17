@@ -88,16 +88,17 @@ export function ReportPreview({ caseState, update }: Props) {
   const isPathology = (caseState as any).organ === 'pathology';
   const isProstate = (caseState as any).organ === 'prostate';
   const isLung = (caseState as any).organ === 'lung';
+  const isPlacenta = (caseState as any).organ === 'placenta';
 
   const saveDraft = () => {
-    const prefix = isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : 'breast';
+    const prefix = isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : isPlacenta ? 'placenta' : 'breast';
     downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
   const loadDraft = async () => {
     try {
       const data = (await pickJsonFile()) as AnyCase;
-      if ((data as any)?.cap || ['pathology','prostate','lung'].includes((data as any)?.organ)) {
+      if ((data as any)?.cap || ['pathology','prostate','lung','placenta'].includes((data as any)?.organ)) {
         update(() => data);
         setReportText(data.reportText || '');
       }
@@ -107,7 +108,7 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const c = caseState as any;
-  const bc = (isEndo || isPathology || isProstate || isLung) ? null : (caseState as CaseData);
+  const bc = (isEndo || isPathology || isProstate || isLung || isPlacenta) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens?.length
@@ -243,7 +244,29 @@ export function ReportPreview({ caseState, update }: Props) {
             )}
           </div>
 
-          {isLung ? (
+          {isPlacenta ? (
+            <>
+              <Section title="Clinical" rows={[
+                { label: 'Gestational age',  value: c.gestationalAgeWeeks != null ? `${c.gestationalAgeWeeks} weeks` : null },
+                { label: 'Delivery',         value: v(c.deliveryMethod === 'other' ? c.deliveryMethodOther : c.deliveryMethod) },
+                { label: 'History',          value: v(c.clinicalHistory) },
+              ]} />
+              <Section title="Weight" rows={[
+                { label: 'Weight (trimmed)', value: c.placentaWeightG != null ? `${c.placentaWeightG} g` : null },
+                { label: 'Percentile',       value: v(c.weightPercentile?.band) },
+                { label: 'SGA / LGA',        value: c.weightPercentile?.isSmall ? 'Small for GA' : c.weightPercentile?.isLarge ? 'Large for GA' : null },
+              ]} />
+              <Section title="Findings" rows={[
+                { label: 'Umbilical cord',   value: c.findings?.cord?.normal === false ? v(c.findings.cord.line) : `${c.cordVessels === 2 ? 'Two-vessel' : 'Trivascular'}, negative` },
+                { label: 'Membranes',        value: c.findings?.membranes?.normal === false ? v(c.findings.membranes.line) : 'Negative for chorioamnionitis' },
+                { label: 'Disc',             value: c.findings?.disc?.normal === false ? v(c.findings.disc.line) : 'Intact, negative' },
+                { label: 'Villi / decidua',  value: c.findings?.villiDecidua?.normal === false ? v(c.findings.villiDecidua.line) : 'Negative for villitis/vasculopathy' },
+              ]} />
+              <Section title="Billing" rows={[
+                { label: 'CPT', value: v(c.cpt) },
+              ]} />
+            </>
+          ) : isLung ? (
             <>
               <Section title="Procedure" rows={[
                 { label: 'Resection type',    value: v(c.resectionType) },
@@ -286,7 +309,7 @@ export function ReportPreview({ caseState, update }: Props) {
               {(c.specimens || []).map((s: any, i: number) => (
                 <Section key={i} title={`Specimen ${s.letter}`} rows={[
                   { label: 'Designation',  value: v(s.designation) },
-                  { label: 'Carcinoma',    value: s.hasCarcinoma === true ? 'Yes' : s.hasCarcinoma === false ? 'No (benign)' : null },
+                  { label: 'Carcinoma',    value: s.hasCarcinoma === true ? 'Yes' : s.hasCarcinoma === 'atypical' ? 'ASAP' : s.hasCarcinoma === false ? 'No (benign)' : null },
                   { label: 'Grade group',  value: v(s.gradeGroupLabel) },
                   { label: '% Pattern 4',  value: v(s.pattern4Pct) },
                   { label: 'Cores (+/total)', value: (s.coresPositive != null && s.coresTotal != null) ? `${s.coresPositive}/${s.coresTotal}` : null },

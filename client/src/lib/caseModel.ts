@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -298,6 +298,37 @@ export function createEmptyPathologyCase(): PathologyCaseData {
     ihc: [],
     caseComment: '',
     ihcModifier: '',
+    reportText: '',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyPlacentaCase(): PlacentaCaseData {
+  return {
+    version: 1,
+    organ: 'placenta',
+    mode: 'placenta-singleton',
+    receivedDate: null,
+    specimenDesignation: '',
+    gestationalAgeWeeks: null,
+    deliveryMethod: null,
+    deliveryMethodOther: '',
+    clinicalHistory: '',
+    placentaWeightG: null,
+    weightPercentile: null,
+    cordVessels: 3,
+    findings: {
+      cord:         { normal: true, line: '' },
+      membranes:    { normal: true, line: '' },
+      disc:         { normal: true, line: '' },
+      villiDecidua: { normal: true, line: '' },
+    },
+    additionalDiagnosisLines: [],
+    caseComment: '',
+    references: [
+      'Khong TY, Mooney EE, Ariel I, et al. Sampling and Definitions of Placental Lesions: Amsterdam Placental Workshop Group Consensus Statement. Arch Pathol Lab Med. 2016;140(7):698-713.',
+    ],
+    cpt: '88307',
     reportText: '',
     updatedAt: new Date().toISOString(),
   };

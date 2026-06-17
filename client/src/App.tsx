@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AnyCase, CaseData, PathologyCaseData, Settings } from './lib/types';
-import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, createEmptyProstateCase, createEmptyLungCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
+import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, createEmptyProstateCase, createEmptyLungCase, createEmptyPlacentaCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
 import { autosaveCase, loadAutosavedCase, loadSettings, saveSettings } from './lib/storage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AgentPane } from './components/AgentPane';
 import { ReportPreview } from './components/ReportPreview';
 
-type OrganType = 'breast' | 'endometrium' | 'pathology' | 'prostate' | 'lung';
+type OrganType = 'breast' | 'endometrium' | 'pathology' | 'prostate' | 'lung' | 'placenta';
 
 function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
   return (
@@ -38,6 +38,11 @@ function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
           <div className="organ-card-title">Lung Carcinoma</div>
           <div className="organ-card-desc">Resection — AJCC 9th edition pTNM staging, full CAP protocol, MIPS #396, CPT billing</div>
         </div>
+        <div className="organ-card" onClick={() => onSelect('placenta')}>
+          <div className="organ-card-icon">🤰</div>
+          <div className="organ-card-title">Placenta</div>
+          <div className="organ-card-desc">Singleton placenta — weight percentile for gestational age, Amsterdam terminology, CPT billing</div>
+        </div>
       </div>
     </div>
   );
@@ -54,7 +59,7 @@ export default function App() {
   // Auto-compute breast staging only
   useEffect(() => {
     const org = (caseState as any)?.organ;
-    if (!caseState || org === 'endometrium' || org === 'pathology' || org === 'prostate' || org === 'lung') return;
+    if (!caseState || org === 'endometrium' || org === 'pathology' || org === 'prostate' || org === 'lung' || org === 'placenta') return;
     const bc = caseState as CaseData;
     const computed =
       bc.mode === 'excision-invasive'
@@ -103,6 +108,8 @@ export default function App() {
       ? createEmptyProstateCase()
       : organ === 'lung'
       ? createEmptyLungCase()
+      : organ === 'placenta'
+      ? createEmptyPlacentaCase()
       : createEmptyCase('excision-invasive');
     setCaseState(c);
     setSelectingOrgan(false);
@@ -141,6 +148,8 @@ export default function App() {
     ? 'Prostate Biopsy'
     : organ === 'lung'
     ? 'Lung Carcinoma'
+    : organ === 'placenta'
+    ? 'Placenta'
     : 'Breast Carcinoma';
 
   // Show organ selector if no case exists or user clicked New Case

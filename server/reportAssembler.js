@@ -6,6 +6,7 @@ import { assembleEndometrialReport } from './endometrial/reportAssembler.js';
 import { assemblePathologyReport } from './pathology/reportAssembler.js';
 import { assembleProstateBiopsyReport } from './prostate/reportAssembler.js';
 import { assembleLungReport } from './lung/reportAssembler.js';
+import { assemblePlacentaReport } from './placenta/reportAssembler.js';
 
 function renderClinicalInfo(caseData) {
   const h = caseData.priorHistory || {};
@@ -155,5 +156,6 @@ export function assembleReport(caseData) {
   if (caseData?.organ === 'pathology')   return assemblePathologyReport(caseData);
   if (caseData?.organ === 'prostate')    return assembleProstateBiopsyReport(caseData);
   if (caseData?.organ === 'lung')        return assembleLungReport(caseData);
+  if (caseData?.organ === 'placenta')    return assemblePlacentaReport(caseData);
   return assembleBreastReport(caseData);
 }
