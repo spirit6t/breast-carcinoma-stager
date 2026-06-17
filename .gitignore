@@ -4,3 +4,12 @@ dist/
 .env.local
 .DS_Store
 *.log
+
+# Stray non-app scripts (trading/scanner tools that live in this folder)
+__pycache__/
+gainers_alpaca.py
+premarket_gappers_scan.sh
+scheduled_gappers.zsh
+tjl_scan.py
+tjl_watchlist_*.json
+watchlist_premarket.py
