@@ -56,6 +56,22 @@ function pmExplain(cat) {
   return cat;
 }
 
+function figo2009Explain(stage) {
+  const map = {
+    'IA':    'tumor limited to endometrium or invades <50% of myometrium',
+    'IB':    'tumor invades ≥50% of myometrium',
+    'II':    'cervical stromal invasion; tumor confined to uterus',
+    'IIIA':  'tumor involves uterine serosa and/or adnexa',
+    'IIIB':  'vaginal or parametrial involvement',
+    'IIIC1': 'pelvic lymph node metastasis',
+    'IIIC2': 'para-aortic lymph node metastasis ± pelvic node involvement',
+    'IVA':   'bladder or bowel mucosa invasion',
+    'IVB':   'distant metastases including intra-abdominal or inguinal lymph nodes',
+  };
+  const key = String(stage || '').trim().replace(/^FIGO\s+/i, '').toUpperCase();
+  return map[key] || '';
+}
+
 function figo2023Explain(stage) {
   const map = {
     'IA1': 'non-aggressive histological type; confined to endometrium or polyp',
@@ -104,7 +120,13 @@ export function buildEndometrialFinalDx(caseData) {
   const blocks = [];
 
   // ── Primary specimen block ──
-  const header = `${primary.letter}. ${upper(primary.designation || '')}:`;
+  // Build header: designation + procedure (append if not already embedded)
+  let desig = upper(primary.designation || '');
+  const proc = upper(cap.specimen?.procedure || '');
+  if (proc && !desig.includes(proc)) {
+    desig = desig ? `${desig}, ${proc}` : proc;
+  }
+  const header = `${primary.letter}. ${desig}:`;
 
   const lines = [header];
 
@@ -166,7 +188,10 @@ export function buildEndometrialFinalDx(caseData) {
   if (stg.pnCategory) stageParts.push(`${yPfx}${stg.pnCategory.replace(/^p/, '')} (${pnExplain(stg.pnCategory)})`);
   if (stg.pmCategory && !/not\s+applicable/i.test(stg.pmCategory)) stageParts.push(`${stg.pmCategory} (${pmExplain(stg.pmCategory)})`);
   if (stageParts.length) lines.push(` - PATHOLOGIC STAGE: ${stageParts.join('; ')}`);
-  if (stg.figoStage2009) lines.push(` - FIGO STAGE (2009): ${upper(stg.figoStage2009)}`);
+  if (stg.figoStage2009) {
+    const exp09 = figo2009Explain(stg.figoStage2009);
+    lines.push(` - FIGO STAGE (2009): ${upper(stg.figoStage2009)}${exp09 ? ` — ${exp09.toUpperCase()}` : ''}`);
+  }
   if (stg.figoStage2023) lines.push(` - FIGO STAGE (2023): ${upper(stg.figoStage2023)} — ${figo2023Explain(stg.figoStage2023)}`);
 
   lines.push(` - SEE CANCER CASE SUMMARY`);

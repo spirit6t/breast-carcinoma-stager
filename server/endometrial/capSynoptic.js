@@ -67,18 +67,37 @@ export function renderCapSynopticEndometrial(caseData) {
 
   parts.push(section('TUMOR', tumorRows.filter(Boolean)));
 
-  // MARGINS
+  // MARGINS (Note K) — required only if cervix/parametrium/paracervix involved
   const marginRows = [];
   if (m.status) {
-    marginRows.push(`Margin Status: ${m.status}`);
-    if (/negative/i.test(m.status || '')) {
-      if (m.closestMm != null) marginRows.push(`  Distance to Closest Margin: ${m.closestMm} mm`);
-      if (m.closestLocations?.length) marginRows.push(`  Closest Margin(s): ${m.closestLocations.join(', ')}`);
-    } else if (/present|positive/i.test(m.status || '')) {
-      if (m.involvedLocations?.length) marginRows.push(`  Involved Margin(s): ${m.involvedLocations.join(', ')}`);
+    marginRows.push(`Margin Status (required only if cervix and/or parametrium/paracervix involved by carcinoma)`);
+    if (/not\s+applicable/i.test(m.status)) {
+      marginRows.push(`  Not applicable`);
+    } else if (/negative/i.test(m.status)) {
+      marginRows.push(`  All margins negative for carcinoma`);
+      if (m.closestLocations?.length) {
+        marginRows.push(`  Closest Margin(s) to Carcinoma:`);
+        for (const loc of m.closestLocations) marginRows.push(`    ${loc}`);
+      }
+      if (m.closestMm != null) {
+        const qualifier = m.distanceQualifier || 'Exact distance';
+        marginRows.push(`  Distance from Carcinoma to Closest Margin: ${qualifier}: ${m.closestMm} mm`);
+      } else if (m.distanceQualifier === 'Less than 1 mm') {
+        marginRows.push(`  Distance from Carcinoma to Closest Margin: Less than 1 mm`);
+      } else if (m.distanceQualifier === 'Cannot be determined') {
+        marginRows.push(`  Distance from Carcinoma to Closest Margin: Cannot be determined`);
+      }
+    } else if (/present|positive/i.test(m.status)) {
+      marginRows.push(`  Carcinoma present at margin`);
+      if (m.involvedLocations?.length) {
+        marginRows.push(`  Margin(s) Involved by Carcinoma:`);
+        for (const loc of m.involvedLocations) marginRows.push(`    ${loc}`);
+      }
+    } else if (/cannot\s+be\s+determined/i.test(m.status)) {
+      marginRows.push(`  Cannot be determined`);
     }
   }
-  if (marginRows.length) parts.push(section('MARGINS', marginRows));
+  if (marginRows.length) parts.push(section('MARGINS (Note K)', marginRows));
 
   // REGIONAL LYMPH NODES
   const nodeRows = [];
@@ -165,7 +184,22 @@ export function renderCapSynopticEndometrial(caseData) {
     const pmExp = /pM1/i.test(stg.pmCategory) ? ' — distant metastasis present' : '';
     stgRows.push(`pM Category: ${stg.pmCategory}${pmExp}`);
   }
-  if (stg.figoStage2009) stgRows.push(`FIGO Stage (2009): ${stg.figoStage2009}`);
+  const FIGO2009_EXPLAIN = {
+    'IA':    'tumor limited to endometrium or invades <50% of myometrium',
+    'IB':    'tumor invades ≥50% of myometrium',
+    'II':    'cervical stromal invasion; tumor confined to uterus',
+    'IIIA':  'tumor involves uterine serosa and/or adnexa',
+    'IIIB':  'vaginal or parametrial involvement',
+    'IIIC1': 'pelvic lymph node metastasis',
+    'IIIC2': 'para-aortic lymph node metastasis ± pelvic node involvement',
+    'IVA':   'bladder or bowel mucosa invasion',
+    'IVB':   'distant metastases including intra-abdominal or inguinal lymph nodes',
+  };
+  if (stg.figoStage2009) {
+    const key09 = String(stg.figoStage2009).trim().toUpperCase();
+    const exp09 = FIGO2009_EXPLAIN[key09] || '';
+    stgRows.push(`FIGO Stage (2009): ${stg.figoStage2009}${exp09 ? ` — ${exp09}` : ''}`);
+  }
   if (stg.figoStage2023) {
     const fKey = String(stg.figoStage2023).trim().toUpperCase();
     const fExp = /IICm/i.test(stg.figoStage2023)

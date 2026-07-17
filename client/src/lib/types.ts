@@ -198,7 +198,7 @@ export interface EndometrialCaseData {
       ovaries: string | null;
       adnexalInvolvement: string | null;
     };
-    margins: { status: string | null; closestMm: number | null; closestLocations: string[]; involvedLocations: string[] };
+    margins: { status: string | null; distanceQualifier: string | null; closestMm: number | null; closestLocations: string[]; involvedLocations: string[] };
     nodes: {
       pelvis: { status: string | null; macroCount: number | null; microCount: number | null; itcCount: number | null; totalExamined: number | null; sentinelExamined: number | null; largestDepositMm: number | null; laterality: string[] };
       paraAortic: { status: string | null; macroCount: number | null; microCount: number | null; itcCount: number | null; totalExamined: number | null; sentinelExamined: number | null; largestDepositMm: number | null; laterality: string[] };

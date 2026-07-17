@@ -36,10 +36,11 @@ export function createEmptyEndometrialCase() {
         adnexalInvolvement: null,
       },
       margins: {
-        status: null,                    // 'Not applicable' | 'All margins negative' | 'Carcinoma present at margin'
+        status: null,                    // 'Not applicable' | 'All margins negative' | 'Carcinoma present at margin' | 'Cannot be determined'
+        distanceQualifier: null,         // 'Exact distance' | 'At least' | 'Less than' | 'Less than 1 mm' | 'Cannot be determined'
         closestMm: null,
-        closestLocations: [],
-        involvedLocations: [],
+        closestLocations: [],            // 'Ectocervical' | 'Vaginal cuff' | 'Parametrial' | 'Paracervical' | 'Other: ...'
+        involvedLocations: [],           // same options as closestLocations
       },
       nodes: {
         pelvis: {
