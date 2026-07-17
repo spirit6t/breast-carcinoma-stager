@@ -40,11 +40,44 @@ const SPECIMEN_RULES = [
 ];
 
 /**
+ * Determine whether an additional/shave margin diagnosis warrants upgrade to 88307.
+ *
+ * Rules:
+ *   - Carcinoma, DCIS, invasive, or malignant tissue → always 88307
+ *   - Atypical pathology (ADH, ALH, FEA, LCIS) + measurement against inked margin → 88307
+ *   - Negative for carcinoma/atypia (benign) → stays 88305
+ */
+function shouldUpgradeMarginTo88307(diagnosis) {
+  if (!diagnosis) return false;
+  const dx = String(diagnosis);
+
+  // Remove "negative for [clause]" and "no [X] identified/seen/present" phrases so that
+  // "Negative for carcinoma or atypia" doesn't trigger the carcinoma check below.
+  const positive = dx
+    .replace(/\bnegative\s+for\b[^.;]*/gi, '')
+    .replace(/\bno\s+\w[\w\s]*\b(identified|seen|present|found)\b[^.;]*/gi, '')
+    .trim();
+
+  // Carcinoma / DCIS / invasive present in the positive-findings portion → 88307
+  if (/\bcarcinoma\b|\bdcis\b|malignant|\binvasive\b/i.test(positive)) return true;
+
+  // Atypical pathology entities (specific terms, not the generic word "atypia")
+  const hasAtypicalEntity =
+    /\badh\b|atypical\s+ductal\s+hyperplasia|\balh\b|atypical\s+lobular\s+hyperplasia|flat\s+epithelial\s+atypia|\bfea\b|\blcis\b|lobular\s+carcinoma\s+in\s+situ/i.test(dx);
+
+  // Measurement against inked margin (e.g. "3 mm from ink", "at inked margin")
+  const hasMeasurementToMargin =
+    /\d+\s*mm\s*(from|to|of)\s*(the\s+)?(ink|inked(\s+margin)?)|at\s+(the\s+)?inked?\s+(margin)?|\bmeasure[ds]?\b.*\bink/i.test(dx);
+
+  return hasAtypicalEntity && hasMeasurementToMargin;
+}
+
+/**
  * Suggest a CPT code for a breast/endometrial specimen.
  *
  * @param {string} designation  — verbatim specimen designation
  * @param {string} [diagnosis]  — diagnosis text (used to upgrade shave margin to 88307
- *                                 when carcinoma/DCIS is present)
+ *                                 when pathology is present or atypia + measurement-to-ink)
  * @returns {{ cpt: string, label: string } | null}
  */
 export function suggestSpecimenCpt(designation, diagnosis) {
@@ -52,8 +85,8 @@ export function suggestSpecimenCpt(designation, diagnosis) {
 
   for (const rule of SPECIMEN_RULES) {
     if (rule.match.test(designation)) {
-      // Shave/additional margin upgrade: if pathology (carcinoma or DCIS) is present → 88307
-      if (rule.cpt === '88305' && diagnosis && /carcinoma|dcis|malignant|invasive/i.test(diagnosis)) {
+      // Shave/additional margin upgrade logic
+      if (rule.cpt === '88305' && shouldUpgradeMarginTo88307(diagnosis)) {
         return { cpt: '88307', label: 'Additional / shave margin (with pathology)', cptAddons: [] };
       }
       // Frozen section: detect multiple sites on same specimen → 88332 add-ons

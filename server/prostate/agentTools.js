@@ -73,7 +73,7 @@ export const PROSTATE_TOOL_SCHEMAS = [
   },
   {
     name: 'set_specimen_benign',
-    description: 'Mark a specimen as benign prostatic tissue. Optionally record additional findings.',
+    description: 'Mark a specimen as benign prostatic tissue. Optionally record additional findings. Do NOT use this for ASAP — use set_specimen_atypical instead.',
     input_schema: {
       type: 'object',
       required: ['letter'],
@@ -82,8 +82,19 @@ export const PROSTATE_TOOL_SCHEMAS = [
         additionalFindings: {
           type: 'array',
           items: { type: 'string' },
-          description: 'e.g. ["High-grade prostatic intraepithelial neoplasia (PIN)", "Atypical small acinar proliferation (ASAP)", "Atypical intraductal proliferation (AIP)", "Inflammation (acute)", "Inflammation (chronic)"]',
+          description: 'e.g. ["High-grade prostatic intraepithelial neoplasia (PIN)", "Atypical intraductal proliferation (AIP)", "Inflammation (acute)", "Inflammation (chronic)"]',
         },
+      },
+    },
+  },
+  {
+    name: 'set_specimen_atypical',
+    description: 'Mark a specimen as ASAP (Atypical Small Acinar Proliferation). Use whenever the pathologist says "Atypical", "Atypical glands", "ASAP", or any equivalent phrase. The report will render the full standardized text: ATYPICAL SMALL ACINAR PROLIFERATION SUSPICIOUS BUT NOT DIAGNOSTIC OF MALIGNANCY (ASAP).',
+    input_schema: {
+      type: 'object',
+      required: ['letter'],
+      properties: {
+        letter: { type: 'string' },
       },
     },
   },
@@ -253,6 +264,14 @@ export async function executeProstateTool(name, args, caseData) {
       return { case: c, result: { ok: true, letter } };
     }
 
+    case 'set_specimen_atypical': {
+      const letter = String(args.letter || '').toUpperCase();
+      const idx = (c.specimens || []).findIndex(s => s.letter === letter);
+      if (idx === -1) return { error: `Specimen ${letter} not found — call add_specimen first` };
+      c.specimens[idx].hasCarcinoma = 'atypical';
+      return { case: c, result: { ok: true, letter, diagnosis: 'ATYPICAL SMALL ACINAR PROLIFERATION SUSPICIOUS BUT NOT DIAGNOSTIC OF MALIGNANCY (ASAP)' } };
+    }
+
     case 'set_specimen_pin4': {
       const letter = String(args.letter || '').toUpperCase();
       const idx = (c.specimens || []).findIndex(s => s.letter === letter);
@@ -342,8 +361,13 @@ g) Ask about lymphovascular invasion (optional, less commonly assessed in biopsi
    - Only ask if the pathologist mentions it, or in high-grade cases (GG4/GG5).
 h) Call set_specimen_carcinoma with all collected fields.
 
+**If ATYPICAL / ASAP:**
+Any of the following phrases → call set_specimen_atypical (do NOT use set_specimen_benign):
+- "Atypical", "Atypical glands", "ASAP", "atypical small acinar proliferation", "suspicious glands", or any equivalent.
+The report renders the full standardized line automatically.
+
 **If BENIGN:**
-a) Ask: "Any additional findings? (High-grade PIN, ASAP, AIP, inflammation, or none?)"
+a) Ask: "Any additional findings? (High-grade PIN, AIP, inflammation, or none?)"
 b) Call set_specimen_benign with optional additionalFindings array.
 
 ### 4. PIN4 IHC (if performed for any specimen)

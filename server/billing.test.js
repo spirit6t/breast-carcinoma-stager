@@ -14,9 +14,37 @@ test('specimen: sentinel LN → 88307', () => {
   assert.equal(suggestSpecimenCpt('Left axillary sentinel lymph node').cpt, '88307');
 });
 
-test('specimen: additional margin → 88305', () => {
+test('specimen: additional margin → 88305 (benign / negative)', () => {
   assert.equal(suggestSpecimenCpt('Additional superior margin').cpt, '88305');
   assert.equal(suggestSpecimenCpt('Additional medial margin').cpt, '88305');
+  assert.equal(suggestSpecimenCpt('Additional superior margin', 'Negative for carcinoma or atypia').cpt, '88305');
+});
+
+test('specimen: additional margin with carcinoma/DCIS → 88307', () => {
+  assert.equal(suggestSpecimenCpt('Additional superior margin', 'DCIS present at margin').cpt, '88307');
+  assert.equal(suggestSpecimenCpt('Shave margin', 'Invasive carcinoma present').cpt, '88307');
+});
+
+test('specimen: additional margin with ADH + measurement to ink → 88307', () => {
+  assert.equal(
+    suggestSpecimenCpt('Additional posterior margin', 'Atypical ductal hyperplasia (ADH), 2 mm from inked margin').cpt,
+    '88307'
+  );
+  assert.equal(
+    suggestSpecimenCpt('Additional superior margin', 'ADH present, 1 mm from ink').cpt,
+    '88307'
+  );
+  assert.equal(
+    suggestSpecimenCpt('Additional margin', 'Atypical lobular hyperplasia (ALH), at inked margin').cpt,
+    '88307'
+  );
+});
+
+test('specimen: additional margin with ADH but NO measurement → stays 88305', () => {
+  assert.equal(
+    suggestSpecimenCpt('Additional superior margin', 'Atypical ductal hyperplasia (ADH)').cpt,
+    '88305'
+  );
 });
 
 test('ihc: first antibody 88342, next 88341', () => {

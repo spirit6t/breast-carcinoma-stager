@@ -23,6 +23,16 @@ function gradeText(g) {
   return up.replace('GRADE', 'NUCLEAR GRADE');
 }
 
+// Normalize any "invasive ductal / NST" variant to the preferred CAP term.
+const DUCTAL_RE = /invasive\s+(ductal|carcinoma\s*(of\s*)?no\s+special\s+type)/i;
+function normalizeInvasiveHistType(raw) {
+  if (!raw) return 'INVASIVE CARCINOMA OF NO SPECIAL TYPE (DUCTAL)';
+  if (DUCTAL_RE.test(raw) || /no\s+special\s+type/i.test(raw)) {
+    return 'INVASIVE CARCINOMA OF NO SPECIAL TYPE (DUCTAL)';
+  }
+  return upper(raw);
+}
+
 function buildDcisBlock(caseData) {
   const specimens = caseData.specimens || [];
   const cap = caseData.cap || {};
@@ -148,7 +158,7 @@ function buildInvasiveBlock(caseData) {
 
   const header = `${primary.letter}. BREAST${laterality ? `, ${upper(laterality)}` : ''}${procedure ? `, ${upper(procedure)}` : (primary.designation ? `, ${upper(primary.designation)}` : '')}:`;
 
-  const histType = upper(t.histologicType || 'INVASIVE CARCINOMA');
+  const histType = normalizeInvasiveHistType(t.histologicType);
   const grade = t.nottingham?.overallGrade ? `, ${upper(t.nottingham.overallGrade)} (NOTTINGHAM SCORE ${t.nottingham.totalScore || '?'}/9)` : '';
   const sizeStr = fmtSize(t.invasiveSizeMm, t.invasiveAdditionalDimMm);
   const sizeLine = sizeStr ? `TUMOR SIZE: ${sizeStr}` : '';

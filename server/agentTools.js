@@ -28,7 +28,7 @@ export const TOOL_SCHEMAS = [
   {
     name: 'add_specimen',
     description:
-      'Add or update a specimen. Preserve the VERBATIM designation exactly as the pathologist stated it. CPT auto-suggested: frozen section / intraoperative consult → 88331 (88332 add-on for each additional site same specimen); lumpectomy/partial mastectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel lymph node → 88307; additional/shave margin (benign) → 88305; additional/shave margin with pathology (carcinoma/DCIS) → 88307.',
+      'Add or update a specimen. Preserve the VERBATIM designation exactly as the pathologist stated it. CPT auto-suggested: frozen section / intraoperative consult → 88331 (88332 add-on for each additional site same specimen); lumpectomy/partial mastectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel lymph node → 88307; additional/shave margin negative for carcinoma or atypia → 88305; additional/shave margin with carcinoma/DCIS → 88307; additional/shave margin with atypical pathology (ADH, ALH, FEA) AND measurement against inked margin → 88307.',
     input_schema: {
       type: 'object',
       required: ['letter', 'designation'],
@@ -355,7 +355,8 @@ BLOCK 2 — SPECIMENS (A, B, C …)
 • Capture each one VERBATIM — preserve the full designation including the procedure suffix (e.g. "RIGHT BREAST, PARTIAL MASTECTOMY (LUMPECTOMY)", "ADDITIONAL ANTERIOR-SUPERIOR MARGIN, SHAVE EXCISION", "LEFT AXILLA, SENTINEL LYMPH NODE BIOPSY").
 • When the pathologist provides a formatted list (e.g. "A. RIGHT BREAST, LUMPECTOMY / B. ANTERIOR MARGIN, SHAVE"), parse each lettered entry and call add_specimen once per specimen.
 • NEVER abbreviate, simplify, or paraphrase the designation — use the exact text provided.
-• Auto-suggest CPT: lumpectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel node → 88307; additional/shave margin benign → 88305; additional/shave margin with carcinoma/DCIS → 88307.
+• Auto-suggest CPT: lumpectomy → 88307; radical/modified radical mastectomy → 88309; any mastectomy → 88309; sentinel node → 88307; additional/shave margin negative for carcinoma/atypia → 88305; additional/shave margin with carcinoma/DCIS → 88307; additional/shave margin with atypical pathology (ADH, ALH, FEA) AND measurement against inked margin → 88307.
+• IHC per specimen: first distinct antibody → 88342; each additional distinct antibody → 88341; Ki-67/MIB-1 → 88360 (separate chain). Same antibody on same specimen counted once.
 Tool: add_specimen (letter, designation, optional cpt override)
 
 BLOCK 3 — HISTOLOGIC TYPE & NOTTINGHAM GRADE (invasive mode)
@@ -373,10 +374,16 @@ BLOCK 4 — TUMOR SIZE & FOCALITY
 Size rule: if two histologically similar tumors ≤5 mm apart, measure outer-to-outer edges
 Tools: set_cap_field cap.tumor.grossSizeMm, cap.tumor.invasiveSizeMm, cap.tumor.focality, cap.tumor.numberOfFoci
 
-BLOCK 5 — ASSOCIATED DCIS
+BLOCK 5 — ASSOCIATED DCIS (Note G)
 • DCIS present/not identified/cannot be determined
-• If present: estimated extent (mm), nuclear grade, architectural patterns (comedo/cribriform/micropapillary/papillary/solid), necrosis, EIC (yes/no), blocks with DCIS
-Tools: set_cap_field cap.tumor.dcisAssociated, cap.tumor.dcisExtentMm, cap.tumor.dcisGrade, cap.tumor.dcisArchitecturalPatterns, cap.tumor.dcisNecrosis, cap.tumor.extensiveIntraductalComponent
+• If present — ask about EACH of the following:
+  Extent of DCIS (select all that apply): "Admixed with invasive carcinoma" (+ % of entire tumor), "Extends beyond the invasive carcinoma", "Separate from the invasive carcinoma", Other (specify), Cannot be determined (explain)
+  Estimated size of DCIS (mm)
+  Architectural patterns: Comedo, Cribriform, Micropapillary, Papillary, Solid, Solid papillary carcinoma in situ, Encapsulated papillary carcinoma in situ, Paget disease (DCIS involving nipple skin), Other (specify)
+  Nuclear grade: Grade I (low) / Grade II (intermediate) / Grade III (high)
+  Necrosis: Not identified / Present, focal / Present, central (comedo) / Cannot be excluded (explain)
+  EIC (extensive intraductal component): yes/no
+Tools: set_cap_field cap.tumor.dcisAssociated, cap.tumor.dcisExtentCategories (array), cap.tumor.dcisAdmixedPercent, cap.tumor.dcisExtentOther, cap.tumor.dcisExtentCannotDetermine, cap.tumor.dcisExtentMm, cap.tumor.dcisGrade, cap.tumor.dcisArchitecturalPatterns (array), cap.tumor.dcisPatternOther, cap.tumor.dcisNecrosis, cap.tumor.dcisNecrosisCannotExclude, cap.tumor.dcisComment, cap.tumor.extensiveIntraductalComponent
 
 BLOCK 6 — LVI & TUMOR EXTENT
 • Lymphovascular invasion (not identified / present / cannot be determined)

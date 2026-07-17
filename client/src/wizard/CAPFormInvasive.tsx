@@ -31,8 +31,22 @@ const LVI = ['Not identified', 'Present', 'Cannot be determined'];
 const DCIS_PRESENT = ['Not identified', 'Present', 'Cannot be determined'];
 const DCIS_PERCENT = ['<25%', '25–50%', '>50%'];
 const DCIS_GRADES = ['Grade I (low)', 'Grade II (intermediate)', 'Grade III (high)'];
-const DCIS_PATTERNS = ['Comedo', 'Cribriform', 'Micropapillary', 'Papillary', 'Solid'];
-const DCIS_NECROSIS = ['Not identified', 'Present, focal', 'Present, central (comedo)'];
+const DCIS_EXTENT_OPTIONS = [
+  'Admixed with invasive carcinoma',
+  'Extends beyond the invasive carcinoma',
+  'Separate from the invasive carcinoma',
+];
+const DCIS_PATTERNS = [
+  'Comedo', 'Cribriform', 'Micropapillary', 'Papillary', 'Solid',
+  'Solid papillary carcinoma in situ', 'Encapsulated papillary carcinoma in situ',
+  'Paget disease (DCIS involving nipple skin)', 'Other',
+];
+const DCIS_NECROSIS = [
+  'Not identified',
+  'Present, focal (small foci or single cell necrosis)',
+  'Present, central (expansive "comedo" necrosis)',
+  'Cannot be excluded',
+];
 const CALCS = ['Not identified', 'Present in invasive carcinoma', 'Present in DCIS', 'Present in nonneoplastic tissue'];
 const SKIN_INVOLVE = ['Not applicable', 'Paget disease of nipple', 'Dermal lymphovascular invasion', 'Skin/dermal invasion', 'Skin ulceration', 'Skin satellite nodules'];
 const NIPPLE = ['Not identified', 'Paget disease only', 'Invasive carcinoma involves nipple', 'DCIS involves nipple', 'Cannot be assessed'];
@@ -254,19 +268,6 @@ export function CAPFormInvasive({ caseState, update }: Props) {
         <Chips options={TUMOR_SITES} selected={t.site} toggle={(v) => toggleInList('tumor.site', v, t.site)} />
       </div>
       <div className="field">
-        <label>Histologic Type</label>
-        <SingleChips options={HIST_TYPES} value={t.histologicType} onChange={(v) => setCap('tumor.histologicType', v)} />
-        {t.histologicType === 'Other (specify)' && (
-          <input
-            type="text"
-            value={t.histologicTypeOther}
-            onChange={(e) => setCap('tumor.histologicTypeOther', e.target.value)}
-            placeholder="specify"
-            style={{ marginTop: 6 }}
-          />
-        )}
-      </div>
-      <div className="field">
         <label>Tumor Focality</label>
         <SingleChips options={FOCALITY} value={t.focality} onChange={(v) => setCap('tumor.focality', v)} />
       </div>
@@ -290,6 +291,19 @@ export function CAPFormInvasive({ caseState, update }: Props) {
           </div>
         </div>
       )}
+      <div className="field">
+        <label>Histologic Type</label>
+        <SingleChips options={HIST_TYPES} value={t.histologicType} onChange={(v) => setCap('tumor.histologicType', v)} />
+        {t.histologicType === 'Other (specify)' && (
+          <input
+            type="text"
+            value={t.histologicTypeOther}
+            onChange={(e) => setCap('tumor.histologicTypeOther', e.target.value)}
+            placeholder="specify"
+            style={{ marginTop: 6 }}
+          />
+        )}
+      </div>
       <div className="row">
         <div className="field">
           <label>Gross size of tumor (mm)</label>
@@ -416,38 +430,89 @@ export function CAPFormInvasive({ caseState, update }: Props) {
         </div>
       </div>
 
-      <h3>Associated DCIS</h3>
+      <h3>Associated DCIS (Note G)</h3>
       <div className="field">
         <label>DCIS Associated with Invasive Carcinoma</label>
         <SingleChips options={DCIS_PRESENT} value={t.dcisAssociated} onChange={(v) => setCap('tumor.dcisAssociated', v)} />
       </div>
       {t.dcisAssociated === 'Present' && (
         <>
-          <div className="row">
-            <div className="field">
-              <label>Estimated Extent of DCIS (mm)</label>
+          <div className="field">
+            <label>Extent of DCIS (select all that apply)</label>
+            <Chips
+              options={DCIS_EXTENT_OPTIONS}
+              selected={t.dcisExtentCategories}
+              toggle={(v) => toggleInList('tumor.dcisExtentCategories', v, t.dcisExtentCategories)}
+            />
+          </div>
+          {t.dcisExtentCategories.includes('Admixed with invasive carcinoma') && (
+            <div className="field" style={{ marginLeft: 16 }}>
+              <label>Specify DCIS as a Percentage of Entire Tumor (%)</label>
               <input
-                type="number"
-                value={t.dcisExtentMm ?? ''}
-                onChange={(e) => setCap('tumor.dcisExtentMm', e.target.value === '' ? null : Number(e.target.value))}
+                type="text"
+                value={t.dcisAdmixedPercent ?? ''}
+                onChange={(e) => setCap('tumor.dcisAdmixedPercent', e.target.value || null)}
+                placeholder="e.g. 30"
+              />
+            </div>
+          )}
+          <div className="row" style={{ marginTop: 4 }}>
+            <div className="field">
+              <label>Other extent (specify)</label>
+              <input
+                type="text"
+                value={t.dcisExtentOther}
+                onChange={(e) => setCap('tumor.dcisExtentOther', e.target.value)}
+                placeholder="other extent"
               />
             </div>
             <div className="field">
-              <label>DCIS Component (relative)</label>
-              <SingleChips options={DCIS_PERCENT} value={t.dcisPercentage} onChange={(v) => setCap('tumor.dcisPercentage', v)} />
+              <label>Cannot be determined (explain)</label>
+              <input
+                type="text"
+                value={t.dcisExtentCannotDetermine}
+                onChange={(e) => setCap('tumor.dcisExtentCannotDetermine', e.target.value)}
+                placeholder="explain"
+              />
             </div>
           </div>
           <div className="field">
-            <label>DCIS Nuclear Grade</label>
+            <label>Estimated Size of DCIS (mm)</label>
+            <input
+              type="number"
+              value={t.dcisExtentMm ?? ''}
+              onChange={(e) => setCap('tumor.dcisExtentMm', e.target.value === '' ? null : Number(e.target.value))}
+            />
+          </div>
+          <div className="field">
+            <label>Architectural Pattern(s) (select all that apply)</label>
+            <Chips options={DCIS_PATTERNS} selected={t.dcisArchitecturalPatterns} toggle={(v) => toggleInList('tumor.dcisArchitecturalPatterns', v, t.dcisArchitecturalPatterns)} />
+            {t.dcisArchitecturalPatterns.includes('Other') && (
+              <input
+                type="text"
+                value={t.dcisPatternOther}
+                onChange={(e) => setCap('tumor.dcisPatternOther', e.target.value)}
+                placeholder="specify other pattern"
+                style={{ marginTop: 6 }}
+              />
+            )}
+          </div>
+          <div className="field">
+            <label>Nuclear Grade</label>
             <SingleChips options={DCIS_GRADES} value={t.dcisGrade} onChange={(v) => setCap('tumor.dcisGrade', v)} />
           </div>
           <div className="field">
-            <label>DCIS Architectural Patterns</label>
-            <Chips options={DCIS_PATTERNS} selected={t.dcisArchitecturalPatterns} toggle={(v) => toggleInList('tumor.dcisArchitecturalPatterns', v, t.dcisArchitecturalPatterns)} />
-          </div>
-          <div className="field">
-            <label>DCIS Necrosis</label>
+            <label>Necrosis</label>
             <SingleChips options={DCIS_NECROSIS} value={t.dcisNecrosis} onChange={(v) => setCap('tumor.dcisNecrosis', v)} />
+            {/cannot be excluded/i.test(t.dcisNecrosis || '') && (
+              <input
+                type="text"
+                value={t.dcisNecrosisCannotExclude}
+                onChange={(e) => setCap('tumor.dcisNecrosisCannotExclude', e.target.value)}
+                placeholder="explain"
+                style={{ marginTop: 6 }}
+              />
+            )}
           </div>
           <div className="field">
             <label>Extensive Intraductal Component (EIC)</label>
@@ -455,6 +520,15 @@ export function CAPFormInvasive({ caseState, update }: Props) {
               options={['Not identified', 'Present']}
               value={t.extensiveIntraductalComponent === true ? 'Present' : t.extensiveIntraductalComponent === false ? 'Not identified' : null}
               onChange={(v) => setCap('tumor.extensiveIntraductalComponent', v === 'Present')}
+            />
+          </div>
+          <div className="field">
+            <label>DCIS Comment</label>
+            <textarea
+              value={t.dcisComment}
+              onChange={(e) => setCap('tumor.dcisComment', e.target.value)}
+              rows={2}
+              placeholder="optional DCIS comment"
             />
           </div>
         </>

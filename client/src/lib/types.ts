@@ -97,11 +97,18 @@ export interface CaseData {
       lymphovascularInvasion: string | null;
       dermalLymphovascularInvasion: string | null;
       dcisAssociated: string | null;
+      dcisExtentCategories: string[];
+      dcisAdmixedPercent: string | null;
+      dcisExtentOther: string;
+      dcisExtentCannotDetermine: string;
       dcisExtentMm: number | null;
       dcisPercentage: string | null;
       dcisGrade: string | null;
       dcisArchitecturalPatterns: string[];
+      dcisPatternOther: string;
       dcisNecrosis: string | null;
+      dcisNecrosisCannotExclude: string;
+      dcisComment: string;
       extensiveIntraductalComponent: boolean | null;
       skinInvolvement: string[];
       nippleInvolvement: string | null;

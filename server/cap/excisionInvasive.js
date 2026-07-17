@@ -106,10 +106,23 @@ export function renderCapSynopticInvasive(caseData) {
 
   if ((t.site || []).length) add(`+Tumor Site: ${t.site.join(', ')}`);
 
+  // Focality — required before Histologic Type per CAP protocol
+  if (t.focality) {
+    add(`Tumor Focality: ${t.focality}`);
+    if (/multiple/i.test(t.focality) && t.numberOfFoci) {
+      add(`+Number of Foci: ${t.numberOfFoci}`);
+    }
+  }
+
+  // Histologic Type — normalize ductal/NST variants
   if (t.histologicType) {
     add('Histologic Type');
-    const ht = (t.histologicType === 'Other (specify)' && t.histologicTypeOther)
+    let ht = (t.histologicType === 'Other (specify)' && t.histologicTypeOther)
       ? t.histologicTypeOther : t.histologicType;
+    if (/invasive\s+(ductal|carcinoma\s*(of\s*)?no\s+special\s+type)/i.test(ht) ||
+        /no\s+special\s+type/i.test(ht)) {
+      ht = 'Invasive carcinoma of no special type (ductal)';
+    }
     add(` - ${ht}`);
   }
 
@@ -142,28 +155,51 @@ export function renderCapSynopticInvasive(caseData) {
     add(`Tumor Size: Cannot be determined (${t.invasiveSizeCannotBeDetermined})`);
   }
 
-  // Focality
-  if (t.focality) {
-    add(`Tumor Focality: ${t.focality}`);
-    if (/multiple/i.test(t.focality) && t.numberOfFoci) {
-      add(`+Number of Foci: ${t.numberOfFoci}`);
-    }
-  }
-
-  // DCIS
-  add(`Ductal Carcinoma In Situ (DCIS): ${t.dcisAssociated || 'Not identified'}`);
+  // DCIS (Note G) — full CAP extent-of-DCIS section
+  add(`Ductal Carcinoma In Situ (DCIS) (Note G): ${t.dcisAssociated || 'Not identified'}`);
   if (t.dcisAssociated === 'Present') {
+    // Extent of DCIS
+    const extCats = t.dcisExtentCategories || [];
+    if (extCats.length || t.dcisExtentOther || t.dcisExtentCannotDetermine) {
+      add('+Extent of DCIS:');
+      if (extCats.includes('Admixed with invasive carcinoma')) {
+        const pct = t.dcisAdmixedPercent ? `: ${t.dcisAdmixedPercent}%` : '';
+        add(`   Admixed with invasive carcinoma${pct ? ` (+Specify DCIS as a Percentage of Entire Tumor${pct})` : ''}`);
+      }
+      if (extCats.includes('Extends beyond the invasive carcinoma')) {
+        add('   Extends beyond the invasive carcinoma');
+      }
+      if (extCats.includes('Separate from the invasive carcinoma')) {
+        add('   Separate from the invasive carcinoma');
+      }
+      if (t.dcisExtentOther) {
+        add(`   Other: ${t.dcisExtentOther}`);
+      }
+      if (t.dcisExtentCannotDetermine) {
+        add(`   Cannot be determined: ${t.dcisExtentCannotDetermine}`);
+      }
+    }
+    // Estimated Size of DCIS
+    if (t.dcisExtentMm != null && t.dcisExtentMm !== '') {
+      add(`+Estimated Size of DCIS: ${t.dcisExtentMm} mm`);
+    }
+    // Patterns
+    if ((t.dcisArchitecturalPatterns || []).length) {
+      add(`+Architectural Pattern(s): ${t.dcisArchitecturalPatterns.join(', ')}`);
+      if (t.dcisPatternOther) add(`   Other (specify): ${t.dcisPatternOther}`);
+    }
+    // Nuclear grade, necrosis, EIC
+    if (t.dcisGrade) add(`+Nuclear Grade (DCIS): ${t.dcisGrade}`);
+    if (t.dcisNecrosis) {
+      add(`+Necrosis: ${t.dcisNecrosis}`);
+      if (/cannot be excluded/i.test(t.dcisNecrosis) && t.dcisNecrosisCannotExclude) {
+        add(`   Explain: ${t.dcisNecrosisCannotExclude}`);
+      }
+    }
     if (t.extensiveIntraductalComponent != null) {
       add(`+Extensive Intraductal Component (EIC): ${t.extensiveIntraductalComponent ? 'Positive for EIC' : 'Negative for EIC'}`);
     }
-    if (t.dcisExtentMm != null && t.dcisExtentMm !== '') {
-      add(`+Estimated Size (Extent) of DCIS: at least ${t.dcisExtentMm} mm`);
-    }
-    if ((t.dcisArchitecturalPatterns || []).length) {
-      add(`+Architectural Patterns: ${t.dcisArchitecturalPatterns.join(', ')}`);
-    }
-    if (t.dcisGrade) add(`+Nuclear Grade (DCIS): ${t.dcisGrade}`);
-    if (t.dcisNecrosis) add(`+Necrosis: ${t.dcisNecrosis}`);
+    if (t.dcisComment?.trim()) add(`+DCIS Comment: ${t.dcisComment.trim()}`);
   }
 
   // Tumor Extent (skin / nipple / chest wall summary)
