@@ -427,7 +427,67 @@ export interface PlacentaCaseData {
   updatedAt: string;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData;
+export interface KidneyCaseData {
+  version: number;
+  organ: 'kidney';
+  mode: 'kidney-nephrectomy';
+  receivedDate: string | null;
+  signoutDate: string | null;
+  specimens: Array<{
+    letter: string;
+    designation: string;
+    diagnosisLines: string[];
+    cpt: string;
+    cptLabel: string;
+    cptAddons: string[];
+  }>;
+  cap: {
+    specimen: { procedure: string | null; laterality: string | null; procedureOther: string };
+    tumor: {
+      focality: string | null;
+      multifocalCount: number | null;
+      site: string[];
+      siteOther: string;
+      sizeCm: number | null;
+      otherSizesCm: number[];
+      sizeCannotBeDetermined: string;
+      histologicType: string | null;
+      histologicTypeOther: string;
+      histologicGrade: string | null;
+      tumorExtent: string[];
+      rhabdoidFeatures: string | null;
+      rhabdoidPct: number | null;
+      sarcomatoidFeatures: string | null;
+      sarcomatoidPct: number | null;
+      necrosis: string | null;
+      necrosisPct: number | null;
+      lvi: string | null;
+      tumorComment: string;
+    };
+    margins: { status: string | null; involvedLocations: string[]; involvedOther: string; marginComment: string };
+    nodes: {
+      status: string | null;
+      nodesPositive: number | null;
+      nodesExamined: number | null;
+      sites: string[];
+      largestDepositCm: number | null;
+      extranodalExtension: string | null;
+    };
+    metastasis: { sites: string[] };
+    stage: { ptCategory: string | null; pnCategory: string | null; pmCategory: string | null; tSuffix: string; yPrefix: boolean; rPrefix: boolean };
+    additionalFindings: string;
+    specialStudies: { ihcPerformed: boolean; ihcDescription: string; molecularPending: boolean; molecularMarkers: string[] };
+  };
+  caseComment: string;
+  ihc: IhcEntry[];
+  ihcModifier: string;
+  _primaryCpt?: string;
+  _primaryCptLabel?: string;
+  reportText: string;
+  updatedAt: string;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData | KidneyCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';

@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, KidneyCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -235,7 +235,7 @@ export function createEmptyEndometrialCase(): EndometrialCaseData {
         peritonealWashings: null, lvi: null, lviFoci: null,
         fallopianTubes: null, ovaries: null, adnexalInvolvement: null,
       },
-      margins: { status: null, closestMm: null, closestLocations: [], involvedLocations: [] },
+      margins: { status: null, distanceQualifier: null, closestMm: null, closestLocations: [], involvedLocations: [] },
       nodes: {
         pelvis: { status: null, macroCount: null, microCount: null, itcCount: null, totalExamined: null, sentinelExamined: null, largestDepositMm: null, laterality: [] },
         paraAortic: { status: null, macroCount: null, microCount: null, itcCount: null, totalExamined: null, sentinelExamined: null, largestDepositMm: null, laterality: [] },
@@ -304,6 +304,42 @@ export function createEmptyPathologyCase(): PathologyCaseData {
     specimens: [],
     ihc: [],
     caseComment: '',
+    ihcModifier: '',
+    reportText: '',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyKidneyCase(): KidneyCaseData {
+  return {
+    version: 1,
+    organ: 'kidney',
+    mode: 'kidney-nephrectomy',
+    receivedDate: null,
+    signoutDate: null,
+    specimens: [],
+    cap: {
+      specimen: { procedure: null, laterality: null, procedureOther: '' },
+      tumor: {
+        focality: null, multifocalCount: null, site: [], siteOther: '',
+        sizeCm: null, otherSizesCm: [], sizeCannotBeDetermined: '',
+        histologicType: null, histologicTypeOther: '',
+        histologicGrade: null,
+        tumorExtent: [],
+        rhabdoidFeatures: null, rhabdoidPct: null,
+        sarcomatoidFeatures: null, sarcomatoidPct: null,
+        necrosis: null, necrosisPct: null,
+        lvi: null, tumorComment: '',
+      },
+      margins: { status: null, involvedLocations: [], involvedOther: '', marginComment: '' },
+      nodes: { status: null, nodesPositive: null, nodesExamined: null, sites: [], largestDepositCm: null, extranodalExtension: null },
+      metastasis: { sites: [] },
+      stage: { ptCategory: null, pnCategory: null, pmCategory: null, tSuffix: '', yPrefix: false, rPrefix: false },
+      additionalFindings: '',
+      specialStudies: { ihcPerformed: false, ihcDescription: '', molecularPending: false, molecularMarkers: [] },
+    },
+    caseComment: '',
+    ihc: [],
     ihcModifier: '',
     reportText: '',
     updatedAt: new Date().toISOString(),
