@@ -398,13 +398,28 @@ BLOCK 7 — TREATMENT EFFECT (if post-neoadjuvant)
 • Treatment effect in the lymph node: not applicable / no definite response / probable or definite response / no lymph node metastases (with or without fibrous scarring)
 Tools: set_cap_field cap.stage.yPrefix (true/false), cap.tumor.treatmentEffect, cap.tumor.treatmentEffectNodes
 
-BLOCK 8 — MARGINS
-• Invasive carcinoma: all negative / positive / cannot be assessed
-  - If negative: distance to closest margin (mm) + which margin(s)
-  - If positive: which margin(s) involved + extent
-• DCIS margins (if DCIS present): same structure
-Tools: set_cap_field cap.margins.invasiveStatus, cap.margins.invasiveDistanceMm, cap.margins.invasiveClosestMargins (array), cap.margins.invasiveInvolvedMargins (array of {side, extent})
-       set_cap_field cap.margins.dcisStatus, cap.margins.dcisDistanceMm, cap.margins.dcisClosestMargins
+BLOCK 8 — MARGINS (CAP v4.11.0.0 — distance-band model)
+• Invasive carcinoma status (one of):
+  - "Not applicable (no residual invasive carcinoma in specimen)"
+  - "All final margins greater than 2 mm from invasive carcinoma"
+  - "Invasive carcinoma present within 0-2 mm of final margins"
+  - "Cannot be determined"
+  If "within 0-2 mm": ask which margins fall in each band:
+  - invasiveAtInk: margins involved AT INK (0 mm, truly positive)
+  - invasiveLt1mm: margins <1 mm but not at ink
+  - invasive1to2mm: margins 1-2 mm
+  - invasiveGt2mm: margins >2 mm (documentation only, optional)
+• DCIS margins (if DCIS present in specimen): same four-band structure
+  - dcisStatus: same four options (replace "invasive carcinoma" with "DCIS")
+  - dcisAtInk, dcisLt1mm, dcis1to2mm, dcisGt2mm (arrays of margin names)
+  - dcisComment: any note (e.g., pleomorphic/florid LCIS)
+Common margin names: anterior, posterior, superior, inferior, medial, lateral, deep, superficial
+Tools: set_cap_field cap.margins.invasiveStatus (string)
+       set_cap_field cap.margins.invasiveAtInk (array), cap.margins.invasiveLt1mm (array), cap.margins.invasive1to2mm (array), cap.margins.invasiveGt2mm (array)
+       set_cap_field cap.margins.invasiveComment (string)
+       set_cap_field cap.margins.dcisStatus (string)
+       set_cap_field cap.margins.dcisAtInk (array), cap.margins.dcisLt1mm (array), cap.margins.dcis1to2mm (array), cap.margins.dcisGt2mm (array)
+       set_cap_field cap.margins.dcisComment (string)
 
 BLOCK 9 — REGIONAL LYMPH NODES
 • Were nodes submitted? (not applicable / regional lymph nodes present)

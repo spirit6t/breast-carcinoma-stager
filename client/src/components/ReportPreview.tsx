@@ -124,21 +124,31 @@ export function ReportPreview({ caseState, update }: Props) {
   const bm = bc?.cap.margins;
   const margInvasiveStr = (() => {
     if (!bm?.invasiveStatus) return null;
-    if (/negative/i.test(bm.invasiveStatus)) {
-      const closest = (bm.invasiveClosestMargins || []).join(', ');
-      const dist = bm.invasiveDistanceMm != null ? `${bm.invasiveDistanceMm} mm` : '';
-      return `Negative${closest ? ` — ${closest}${dist ? ` at ${dist}` : ''}` : ''}`;
+    if (/not applicable/i.test(bm.invasiveStatus)) return null;
+    if (/greater than 2 mm/i.test(bm.invasiveStatus)) return 'All final margins >2 mm';
+    if (/within 0-2 mm/i.test(bm.invasiveStatus)) {
+      const atInk = (bm.invasiveAtInk || []);
+      const lt1   = (bm.invasiveLt1mm || []);
+      const to2   = (bm.invasive1to2mm || []);
+      if (atInk.length) return `Positive at ink: ${atInk.join(', ')}${lt1.length ? `; <1mm: ${lt1.join(', ')}` : ''}${to2.length ? `; 1-2mm: ${to2.join(', ')}` : ''}`;
+      const close = [...lt1.map(s => `${s} <1mm`), ...to2.map(s => `${s} 1-2mm`)];
+      return `Close${close.length ? `: ${close.join(', ')}` : ''}`;
     }
-    return `Positive${(bm.invasiveInvolvedMargins || []).map((x: any) => x.side).join(', ') ? ` (${(bm.invasiveInvolvedMargins || []).map((x: any) => x.side).join(', ')})` : ''}`;
+    return bm.invasiveStatus;
   })();
   const margDcisStr = (() => {
     if (!bm?.dcisStatus) return null;
-    if (/negative/i.test(bm.dcisStatus)) {
-      const closest = (bm.dcisClosestMargins || []).join(', ');
-      const dist = bm.dcisDistanceMm != null ? `${bm.dcisDistanceMm} mm` : '';
-      return `Negative${closest ? ` — ${closest}${dist ? ` at ${dist}` : ''}` : ''}`;
+    if (/not applicable/i.test(bm.dcisStatus)) return null;
+    if (/greater than 2 mm/i.test(bm.dcisStatus)) return 'All final margins >2 mm';
+    if (/within 0-2 mm/i.test(bm.dcisStatus)) {
+      const atInk = (bm.dcisAtInk || []);
+      const lt1   = (bm.dcisLt1mm || []);
+      const to2   = (bm.dcis1to2mm || []);
+      if (atInk.length) return `Positive at ink: ${atInk.join(', ')}${lt1.length ? `; <1mm: ${lt1.join(', ')}` : ''}${to2.length ? `; 1-2mm: ${to2.join(', ')}` : ''}`;
+      const close = [...lt1.map(s => `${s} <1mm`), ...to2.map(s => `${s} 1-2mm`)];
+      return `Close${close.length ? `: ${close.join(', ')}` : ''}`;
     }
-    return `Positive`;
+    return bm.dcisStatus;
   })();
   const bn = bc?.cap.nodes;
   const nodeStr = (() => {

@@ -122,13 +122,19 @@ export interface CaseData {
       closestMargins: string[];
       involvedMargins: InvolvedMargin[];
       invasiveStatus: string | null;
-      invasiveDistanceMm: number | null;
-      invasiveClosestMargins: string[];
-      invasiveInvolvedMargins: InvolvedMargin[];
+      invasiveAtInk: string[];
+      invasiveLt1mm: string[];
+      invasive1to2mm: string[];
+      invasiveGt2mm: string[];
+      invasiveOther: string;
+      invasiveComment: string;
       dcisStatus: string | null;
-      dcisDistanceMm: number | null;
-      dcisClosestMargins: string[];
-      dcisInvolvedMargins: InvolvedMargin[];
+      dcisAtInk: string[];
+      dcisLt1mm: string[];
+      dcis1to2mm: string[];
+      dcisGt2mm: string[];
+      dcisOther: string;
+      dcisComment: string;
     };
     nodes: {
       status: string;

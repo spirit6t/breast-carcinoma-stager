@@ -221,37 +221,37 @@ export function renderCapSynopticInvasive(caseData) {
   add('MARGINS');
 
   if (m.invasiveStatus) {
-    add('Margin Status for Invasive Carcinoma (required only if residual invasive carcinoma is present in specimen)');
+    add('Final Margin Status for Invasive Carcinoma (required only if residual invasive carcinoma is present in specimen)');
     add(m.invasiveStatus);
-    if (m.invasiveStatus === 'All margins negative for invasive carcinoma') {
-      const dist    = fmtDist(m.invasiveDistanceMm);
-      const closest = (m.invasiveClosestMargins || []).join(', ');
-      if (dist || closest) {
-        const parts = [dist, closest ? `${closest.toLowerCase()} margin` : null].filter(Boolean);
-        add(`Distance from Invasive Carcinoma to Closest Margin: ${parts.join(' ')}`);
-      }
-    } else if (m.invasiveStatus === 'Invasive carcinoma present at margin') {
-      for (const mg of m.invasiveInvolvedMargins || []) {
-        add(`Margin Involved: ${mg.side}${mg.extent ? ` (${mg.extent})` : ''}`);
-      }
+    if (/within 0-2 mm/i.test(m.invasiveStatus)) {
+      const atInk = (m.invasiveAtInk || []);
+      const lt1   = (m.invasiveLt1mm || []);
+      const to2   = (m.invasive1to2mm || []);
+      const gt2   = (m.invasiveGt2mm || []);
+      add(`Margin(s) Involved at Ink: ${atInk.length ? atInk.join(', ') : 'None identified'}`);
+      add(`Margin(s) Less Than 1 mm (not at ink): ${lt1.length ? lt1.join(', ') : 'None identified'}`);
+      add(`Margin(s) 1-2 mm: ${to2.length ? to2.join(', ') : 'None identified'}`);
+      if (gt2.length) add(`Margin(s) Greater Than 2 mm: ${gt2.join(', ')}`);
     }
+    if (m.invasiveOther?.trim()) add(`Specify: ${m.invasiveOther.trim()}`);
+    if (m.invasiveComment?.trim()) add(`Comment: ${m.invasiveComment.trim()}`);
   }
 
-  if (m.dcisStatus && m.dcisStatus !== 'No DCIS' && m.dcisStatus !== 'Cannot be assessed') {
-    add('Margin Status for DCIS (required only if DCIS is present in specimen)');
+  if (m.dcisStatus) {
+    add('Final Margin Status for DCIS (required only if DCIS is present in specimen)');
     add(m.dcisStatus);
-    if (m.dcisStatus === 'All margins negative for DCIS') {
-      const dist    = fmtDist(m.dcisDistanceMm);
-      const closest = (m.dcisClosestMargins || []).join(', ');
-      if (dist || closest) {
-        const parts = [dist, closest ? `${closest.toLowerCase()} margin` : null].filter(Boolean);
-        add(`Distance from DCIS to Closest Margin: ${parts.join(' ')}`);
-      }
-    } else if (m.dcisStatus === 'DCIS present at margin') {
-      for (const mg of m.dcisInvolvedMargins || []) {
-        add(`Margin Involved by DCIS: ${mg.side}${mg.extent ? ` (${mg.extent})` : ''}`);
-      }
+    if (/within 0-2 mm/i.test(m.dcisStatus)) {
+      const atInk = (m.dcisAtInk || []);
+      const lt1   = (m.dcisLt1mm || []);
+      const to2   = (m.dcis1to2mm || []);
+      const gt2   = (m.dcisGt2mm || []);
+      add(`Margin(s) Involved at Ink: ${atInk.length ? atInk.join(', ') : 'None identified'}`);
+      add(`Margin(s) Less Than 1 mm (not at ink): ${lt1.length ? lt1.join(', ') : 'None identified'}`);
+      add(`Margin(s) 1-2 mm: ${to2.length ? to2.join(', ') : 'None identified'}`);
+      if (gt2.length) add(`Margin(s) Greater Than 2 mm: ${gt2.join(', ')}`);
     }
+    if (m.dcisOther?.trim()) add(`Specify: ${m.dcisOther.trim()}`);
+    if (m.dcisComment?.trim()) add(`Comment: ${m.dcisComment.trim()}`);
   }
   add('');
 

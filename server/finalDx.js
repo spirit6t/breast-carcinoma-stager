@@ -199,27 +199,43 @@ function buildInvasiveBlock(caseData) {
   const stageParts = [ptDisplay, pnDisplay, pmDisplay].filter(Boolean);
   const stageLine = stageParts.length ? `PATHOLOGIC STAGE: ${stageParts.join(', ')}` : '';
 
-  // ---- Margin lines ----
+  // ---- Margin lines (CAP v4.11.0.0) ----
   let marginInvasive = '';
-  if (m.invasiveStatus === 'All margins negative for invasive carcinoma') {
-    const dist = m.invasiveDistanceMm != null && m.invasiveDistanceMm !== '' ? `${m.invasiveDistanceMm} MM` : '';
-    const closest = (m.invasiveClosestMargins || []).join(', ');
-    marginInvasive = `MARGINS STATUS (INVASIVE CARCINOMA): NEGATIVE` +
-      (closest ? `; CLOSEST MARGIN ${closest.toUpperCase()}${dist ? ` AT ${dist}` : ''}` : '');
-  } else if (m.invasiveStatus === 'Invasive carcinoma present at margin') {
-    const sides = (m.invasiveInvolvedMargins || []).map((x) => upper(x.side)).join(', ');
-    marginInvasive = `MARGINS STATUS (INVASIVE CARCINOMA): POSITIVE${sides ? ` (${sides})` : ''}`;
+  if (/not applicable/i.test(m.invasiveStatus || '')) {
+    marginInvasive = '';
+  } else if (/greater than 2 mm/i.test(m.invasiveStatus || '')) {
+    marginInvasive = 'MARGINS STATUS (INVASIVE CARCINOMA): NEGATIVE (>2 MM)';
+  } else if (/within 0-2 mm/i.test(m.invasiveStatus || '')) {
+    const atInk = (m.invasiveAtInk || []).map(s => s.toUpperCase());
+    const lt1   = (m.invasiveLt1mm || []).map(s => s.toUpperCase());
+    const to2   = (m.invasive1to2mm || []).map(s => s.toUpperCase());
+    if (atInk.length) {
+      marginInvasive = `MARGINS STATUS (INVASIVE CARCINOMA): POSITIVE AT INK (${atInk.join(', ')})`;
+      if (lt1.length) marginInvasive += `; CLOSE <1MM (${lt1.join(', ')})`;
+      if (to2.length) marginInvasive += `; CLOSE 1-2MM (${to2.join(', ')})`;
+    } else {
+      const closeParts = [...lt1.map(s => `${s} <1MM`), ...to2.map(s => `${s} 1-2MM`)];
+      marginInvasive = `MARGINS STATUS (INVASIVE CARCINOMA): CLOSE${closeParts.length ? ` (${closeParts.join(', ')})` : ''}`;
+    }
   }
 
   let marginDcis = '';
-  if (m.dcisStatus === 'All margins negative for DCIS') {
-    const dist = m.dcisDistanceMm != null && m.dcisDistanceMm !== '' ? `${m.dcisDistanceMm} MM` : '';
-    const closest = (m.dcisClosestMargins || []).join(', ');
-    marginDcis = `MARGINS STATUS (DCIS): NEGATIVE` +
-      (closest ? `; CLOSEST MARGIN ${closest.toUpperCase()}${dist ? ` AT ${dist}` : ''}` : '');
-  } else if (m.dcisStatus === 'DCIS present at margin') {
-    const sides = (m.dcisInvolvedMargins || []).map((x) => upper(x.side)).join(', ');
-    marginDcis = `MARGINS STATUS (DCIS): POSITIVE${sides ? ` (${sides})` : ''}`;
+  if (/not applicable/i.test(m.dcisStatus || '')) {
+    marginDcis = '';
+  } else if (/greater than 2 mm/i.test(m.dcisStatus || '')) {
+    marginDcis = 'MARGINS STATUS (DCIS): NEGATIVE (>2 MM)';
+  } else if (/within 0-2 mm/i.test(m.dcisStatus || '')) {
+    const atInk = (m.dcisAtInk || []).map(s => s.toUpperCase());
+    const lt1   = (m.dcisLt1mm || []).map(s => s.toUpperCase());
+    const to2   = (m.dcis1to2mm || []).map(s => s.toUpperCase());
+    if (atInk.length) {
+      marginDcis = `MARGINS STATUS (DCIS): POSITIVE AT INK (${atInk.join(', ')})`;
+      if (lt1.length) marginDcis += `; CLOSE <1MM (${lt1.join(', ')})`;
+      if (to2.length) marginDcis += `; CLOSE 1-2MM (${to2.join(', ')})`;
+    } else {
+      const closeParts = [...lt1.map(s => `${s} <1MM`), ...to2.map(s => `${s} 1-2MM`)];
+      marginDcis = `MARGINS STATUS (DCIS): CLOSE${closeParts.length ? ` (${closeParts.join(', ')})` : ''}`;
+    }
   }
 
   // ---- Lymph node line ----

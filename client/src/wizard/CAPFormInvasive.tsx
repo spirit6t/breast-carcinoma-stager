@@ -1,4 +1,4 @@
-import type { CaseData, InvolvedMargin } from '../lib/types';
+import type { CaseData } from '../lib/types';
 import { Chips, SingleChips } from './CAPFormBits';
 
 interface Props {
@@ -65,9 +65,9 @@ const TX_EFFECT_NODES = [
   'No lymph node metastases and no fibrous scarring or histiocytic aggregates in the nodes',
 ];
 
-const INV_MARGIN_STATUSES = ['All margins negative for invasive carcinoma', 'Invasive carcinoma present at margin', 'Cannot be assessed'];
-const DCIS_MARGIN_STATUSES = ['No DCIS', 'All margins negative for DCIS', 'DCIS present at margin', 'Cannot be assessed'];
-const MARGIN_SIDES = ['Anterior', 'Posterior', 'Superior', 'Inferior', 'Medial', 'Lateral'];
+const INV_MARGIN_STATUSES = ['Not applicable (no residual invasive carcinoma in specimen)', 'All final margins greater than 2 mm from invasive carcinoma', 'Invasive carcinoma present within 0-2 mm of final margins', 'Cannot be determined'];
+const DCIS_MARGIN_STATUSES = ['Not applicable (no residual DCIS in specimen)', 'All final margins greater than 2 mm from DCIS', 'DCIS present within 0-2 mm of final margins', 'Cannot be determined'];
+const MARGIN_SIDES = ['Anterior', 'Posterior', 'Superior', 'Inferior', 'Medial', 'Lateral', 'Deep', 'Superficial'];
 const NODE_STATUSES = ['Not applicable (no regional lymph nodes submitted or found)', 'Regional lymph nodes present'];
 const ENE = ['Not identified', 'Present, ≤2 mm', 'Present, >2 mm', 'Cannot be determined'];
 const N_SUFFIX = ['sn', 'f'];
@@ -232,13 +232,12 @@ export function CAPFormInvasive({ caseState, update }: Props) {
     });
   };
 
-  const toggleInvolvedMargin = (
-    path: 'invasiveInvolvedMargins' | 'dcisInvolvedMargins',
+  const toggleMarginBand = (
+    path: 'invasiveAtInk' | 'invasiveLt1mm' | 'invasive1to2mm' | 'invasiveGt2mm' | 'dcisAtInk' | 'dcisLt1mm' | 'dcis1to2mm' | 'dcisGt2mm',
     side: string
   ) => {
-    const list: InvolvedMargin[] = (m as any)[path] || [];
-    const present = list.find((x) => x.side === side);
-    const next = present ? list.filter((x) => x.side !== side) : [...list, { side, extent: '' }];
+    const list: string[] = (m as any)[path] || [];
+    const next = list.includes(side) ? list.filter((x) => x !== side) : [...list, side];
     setCap(`margins.${path}`, next);
   };
 
@@ -567,68 +566,54 @@ export function CAPFormInvasive({ caseState, update }: Props) {
 
       <h3>Margins — Invasive Carcinoma</h3>
       <div className="field">
-        <label>Margin Status</label>
+        <label>Final Margin Status</label>
         <SingleChips options={INV_MARGIN_STATUSES} value={m.invasiveStatus} onChange={(v) => setCap('margins.invasiveStatus', v)} />
       </div>
-      {m.invasiveStatus === 'All margins negative for invasive carcinoma' && (
+      {/within 0-2 mm/i.test(m.invasiveStatus || '') && (
         <>
           <div className="field">
-            <label>Distance to closest margin (mm)</label>
-            <input
-              type="number"
-              step="0.1"
-              value={m.invasiveDistanceMm ?? ''}
-              onChange={(e) => setCap('margins.invasiveDistanceMm', e.target.value === '' ? null : Number(e.target.value))}
-            />
+            <label>Margin(s) Involved at Ink</label>
+            <Chips options={MARGIN_SIDES} selected={m.invasiveAtInk} toggle={(v) => toggleMarginBand('invasiveAtInk', v)} />
           </div>
           <div className="field">
-            <label>Closest Margin(s)</label>
-            <Chips options={MARGIN_SIDES} selected={m.invasiveClosestMargins} toggle={(v) => toggleInList('margins.invasiveClosestMargins', v, m.invasiveClosestMargins)} />
+            <label>Margin(s) &lt;1 mm (not at ink)</label>
+            <Chips options={MARGIN_SIDES} selected={m.invasiveLt1mm} toggle={(v) => toggleMarginBand('invasiveLt1mm', v)} />
+          </div>
+          <div className="field">
+            <label>Margin(s) 1–2 mm</label>
+            <Chips options={MARGIN_SIDES} selected={m.invasive1to2mm} toggle={(v) => toggleMarginBand('invasive1to2mm', v)} />
+          </div>
+          <div className="field">
+            <label>Margin(s) &gt;2 mm (documentation, optional)</label>
+            <Chips options={MARGIN_SIDES} selected={m.invasiveGt2mm} toggle={(v) => toggleMarginBand('invasiveGt2mm', v)} />
           </div>
         </>
-      )}
-      {m.invasiveStatus === 'Invasive carcinoma present at margin' && (
-        <div className="field">
-          <label>Involved Margin(s)</label>
-          <Chips
-            options={MARGIN_SIDES}
-            selected={m.invasiveInvolvedMargins.map((x) => x.side)}
-            toggle={(v) => toggleInvolvedMargin('invasiveInvolvedMargins', v)}
-          />
-        </div>
       )}
 
       <h3>Margins — DCIS</h3>
       <div className="field">
-        <label>DCIS Margin Status</label>
+        <label>Final DCIS Margin Status</label>
         <SingleChips options={DCIS_MARGIN_STATUSES} value={m.dcisStatus} onChange={(v) => setCap('margins.dcisStatus', v)} />
       </div>
-      {m.dcisStatus === 'All margins negative for DCIS' && (
+      {/within 0-2 mm/i.test(m.dcisStatus || '') && (
         <>
           <div className="field">
-            <label>Distance from DCIS to closest margin (mm)</label>
-            <input
-              type="number"
-              step="0.1"
-              value={m.dcisDistanceMm ?? ''}
-              onChange={(e) => setCap('margins.dcisDistanceMm', e.target.value === '' ? null : Number(e.target.value))}
-            />
+            <label>DCIS Margin(s) at Ink</label>
+            <Chips options={MARGIN_SIDES} selected={m.dcisAtInk} toggle={(v) => toggleMarginBand('dcisAtInk', v)} />
           </div>
           <div className="field">
-            <label>Closest Margin(s) to DCIS</label>
-            <Chips options={MARGIN_SIDES} selected={m.dcisClosestMargins} toggle={(v) => toggleInList('margins.dcisClosestMargins', v, m.dcisClosestMargins)} />
+            <label>DCIS Margin(s) &lt;1 mm (not at ink)</label>
+            <Chips options={MARGIN_SIDES} selected={m.dcisLt1mm} toggle={(v) => toggleMarginBand('dcisLt1mm', v)} />
+          </div>
+          <div className="field">
+            <label>DCIS Margin(s) 1–2 mm</label>
+            <Chips options={MARGIN_SIDES} selected={m.dcis1to2mm} toggle={(v) => toggleMarginBand('dcis1to2mm', v)} />
+          </div>
+          <div className="field">
+            <label>DCIS Margin(s) &gt;2 mm (documentation, optional)</label>
+            <Chips options={MARGIN_SIDES} selected={m.dcisGt2mm} toggle={(v) => toggleMarginBand('dcisGt2mm', v)} />
           </div>
         </>
-      )}
-      {m.dcisStatus === 'DCIS present at margin' && (
-        <div className="field">
-          <label>DCIS Involved Margin(s)</label>
-          <Chips
-            options={MARGIN_SIDES}
-            selected={m.dcisInvolvedMargins.map((x) => x.side)}
-            toggle={(v) => toggleInvolvedMargin('dcisInvolvedMargins', v)}
-          />
-        </div>
       )}
 
       <h3>Regional Lymph Nodes</h3>

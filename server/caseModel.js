@@ -86,15 +86,22 @@ export function createEmptyCase(mode = MODES.EXCISION_DCIS) {
         distanceMm: null,
         closestMargins: [],
         involvedMargins: [],
-        // Invasive-mode margins:
-        invasiveStatus: null,        // 'All margins negative for invasive carcinoma' | 'Invasive carcinoma present at margin' | 'Cannot be assessed'
-        invasiveDistanceMm: null,
-        invasiveClosestMargins: [],
-        invasiveInvolvedMargins: [], // [{side, extent}]
-        dcisStatus: null,            // 'All margins negative for DCIS' | 'DCIS present at margin' | 'No DCIS' | 'Cannot be assessed'
-        dcisDistanceMm: null,
-        dcisClosestMargins: [],
-        dcisInvolvedMargins: [],
+        // Invasive-mode margins (CAP v4.11.0.0):
+        invasiveStatus: null,    // 'Not applicable' | 'All final margins greater than 2 mm from invasive carcinoma' | 'Invasive carcinoma present within 0-2 mm of final margins' | 'Cannot be determined'
+        invasiveAtInk: [],       // margins involved at ink
+        invasiveLt1mm: [],       // margins <1 mm (not at ink)
+        invasive1to2mm: [],      // margins 1-2 mm
+        invasiveGt2mm: [],       // margins >2 mm (documentation, optional)
+        invasiveOther: '',
+        invasiveComment: '',
+        // DCIS margins (CAP v4.11.0.0):
+        dcisStatus: null,        // 'Not applicable' | 'All final margins greater than 2 mm from DCIS' | 'DCIS present within 0-2 mm of final margins' | 'Cannot be determined'
+        dcisAtInk: [],
+        dcisLt1mm: [],
+        dcis1to2mm: [],
+        dcisGt2mm: [],
+        dcisOther: '',
+        dcisComment: '',
       },
       nodes: {
         status: 'Not applicable', // 'Not applicable' | 'Regional lymph nodes present'
