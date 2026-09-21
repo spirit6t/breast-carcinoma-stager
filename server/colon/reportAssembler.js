@@ -26,14 +26,15 @@ function extentToDxPhrase(tumorExtent) {
 
 function buildPrimaryDxLine(t) {
   const typeRaw = t.histologicType || 'Adenocarcinoma';
-  // Mucinous adenocarcinoma, etc. — use as-is uppercased
   const typeStr = typeRaw.toUpperCase();
+  const prefix = /^INVASIVE\b/.test(typeStr) ? '' : 'INVASIVE ';
+  const gradePhrase = t.histologicGrade ? `, ${t.histologicGrade.toUpperCase()}` : '';
 
   const extentPhrase = extentToDxPhrase(t.tumorExtent);
   const polypPhrase = t.polyp && !/none/i.test(t.polyp) ? ` ARISING IN THE ${t.polyp.toUpperCase()}` : '';
   const sizePhrase = t.sizeCm != null ? ` AND MEASURING ${t.sizeCm} CM` : '';
 
-  let line = typeStr;
+  let line = `${prefix}${typeStr}${gradePhrase}`;
   if (extentPhrase) line += ` INVADING ${extentPhrase}`;
   line += polypPhrase;
   line += sizePhrase;
@@ -101,10 +102,13 @@ function buildFinalDiagnosis(caseData) {
       const nodeLine = buildNodeDxLine(n);
       if (nodeLine) lines.push(`      -     ${nodeLine}`);
 
-      lines.push('      -     SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS.');
-
-      if (ss.mmrPending) lines.push('      -     PENDING FOR MMR IMMUNOHISTOCHEMISTRY.');
-      if (ss.molecularPending) lines.push('      -     PENDING FOR MOLECULAR STUDIES.');
+      const pendingParts = [];
+      if (ss.mmrPending) pendingParts.push('PENDING FOR MMR IMMUNOHISTOCHEMISTRY');
+      if (ss.molecularPending) pendingParts.push('PENDING FOR MOLECULAR STUDIES');
+      const seeLine = pendingParts.length
+        ? `SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS; ${pendingParts.join('; ')}`
+        : 'SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS';
+      lines.push(`      -     ${seeLine}.`);
     }
     lines.push('');
   }
