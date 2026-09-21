@@ -38,7 +38,6 @@ function buildPrimaryDxLine(t) {
   if (extentPhrase) line += ` INVADING ${extentPhrase}`;
   line += polypPhrase;
   line += sizePhrase;
-  line += '.';
   return line;
 }
 
@@ -49,13 +48,13 @@ function buildMarginDxLine(m) {
       ? m.closestMargins.map(x => x.toUpperCase())
       : ['PROXIMAL', 'DISTAL', 'MESENTERIC'];
     const dysplasia = m.nonInvasiveStatus && /negative/i.test(m.nonInvasiveStatus) ? ' & DYSPLASIA' : '';
-    return `ALL RESECTION MARGINS (${margins.join(', ')}) NEGATIVE FOR CARCINOMA${dysplasia}.`;
+    return `ALL RESECTION MARGINS (${margins.join(', ')}) NEGATIVE FOR CARCINOMA${dysplasia}`;
   }
   if (/positive/i.test(m.invasiveStatus) || /present at margin/i.test(m.invasiveStatus)) {
     const inv = (m.involvedMargins || []).map(x => x.toUpperCase());
     return inv.length
-      ? `${inv.join(', ')} MARGIN${inv.length > 1 ? 'S' : ''} POSITIVE FOR INVASIVE CARCINOMA.`
-      : 'RESECTION MARGIN(S) POSITIVE FOR INVASIVE CARCINOMA.';
+      ? `${inv.join(', ')} MARGIN${inv.length > 1 ? 'S' : ''} POSITIVE FOR INVASIVE CARCINOMA`
+      : 'RESECTION MARGIN(S) POSITIVE FOR INVASIVE CARCINOMA';
   }
   return null;
 }
@@ -65,14 +64,14 @@ function buildNodeDxLine(n) {
   const pos = Number(n.nodesPositive) || 0;
   const exam = Number(n.nodesExamined) || 0;
   if (/all.*negative/i.test(n.status) || (n.status && pos === 0 && !n.tumorDeposits)) {
-    return `ALL ${exam > 0 ? numToWords(exam) + ' ' : ''}LYMPH NODES NEGATIVE FOR CARCINOMA (0/${exam || '?'}).`;
+    return `ALL ${exam > 0 ? numToWords(exam) + ' ' : ''}LYMPH NODES NEGATIVE FOR CARCINOMA (0/${exam || '?'})`;
   }
   if (pos > 0) {
-    return `${numToWords(pos)} OUT OF ${numToWords(exam)} LYMPH NODES POSITIVE FOR CARCINOMA (${pos}/${exam}).`;
+    return `${numToWords(pos)} OUT OF ${numToWords(exam)} LYMPH NODES POSITIVE FOR CARCINOMA (${pos}/${exam})`;
   }
   if (n.tumorDeposits === 'Present') {
     const cnt = n.tumorDepositCount ? ` (${n.tumorDepositCount})` : '';
-    return `TUMOR DEPOSIT(S) PRESENT${cnt}; ALL ${exam > 0 ? exam + ' ' : ''}LYMPH NODES NEGATIVE (0/${exam || '?'}).`;
+    return `TUMOR DEPOSIT(S) PRESENT${cnt}; ALL ${exam > 0 ? exam + ' ' : ''}LYMPH NODES NEGATIVE (0/${exam || '?'})`;
   }
   return null;
 }
@@ -102,13 +101,9 @@ function buildFinalDiagnosis(caseData) {
       const nodeLine = buildNodeDxLine(n);
       if (nodeLine) lines.push(`      -     ${nodeLine}`);
 
-      const pendingParts = [];
-      if (ss.mmrPending) pendingParts.push('PENDING FOR MMR IMMUNOHISTOCHEMISTRY');
-      if (ss.molecularPending) pendingParts.push('PENDING FOR MOLECULAR STUDIES');
-      const seeLine = pendingParts.length
-        ? `SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS; ${pendingParts.join('; ')}`
-        : 'SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS';
-      lines.push(`      -     ${seeLine}.`);
+      lines.push('      -     SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS');
+      if (ss.mmrPending) lines.push('      -     PENDING FOR MMR IMMUNOHISTOCHEMISTRY');
+      if (ss.molecularPending) lines.push('      -     PENDING FOR MOLECULAR STUDIES');
     }
     lines.push('');
   }
@@ -151,21 +146,21 @@ function renderCapSynoptic(caseData) {
 
   function line(label, value) {
     if (value == null || value === '' || (Array.isArray(value) && !value.length)) return;
-    add.push(`      ${label}: ${value}`);
+    add.push(`${label}: ${value}`);
   }
 
-  add.push('      COLON AND RECTUM: RESECTION');
-  add.push('      (CAP Protocol v4.4.0.1 — AJCC 8th Edition)');
+  add.push('COLON AND RECTUM: RESECTION');
+  add.push('(CAP Protocol v4.4.0.1 — AJCC 8th Edition)');
   add.push('');
 
-  add.push('      SPECIMEN');
+  add.push('SPECIMEN');
   line('Procedure', sp.procedure);
   if (sp.mesorectumEval && !/not applicable/i.test(sp.mesorectumEval)) {
     line('Macroscopic Evaluation of Mesorectum', sp.mesorectumEval);
   }
   add.push('');
 
-  add.push('      TUMOR');
+  add.push('TUMOR');
   line('Tumor Site', (t.site || []).join('; '));
   if (t.rectalLocation && !/not applicable/i.test(t.rectalLocation)) {
     line('Rectal Tumor Location', t.rectalLocation);
@@ -193,9 +188,9 @@ function renderCapSynoptic(caseData) {
   }
   add.push('');
 
-  add.push('      MARGINS');
+  add.push('MARGINS');
   if (m.invasiveStatus) {
-    add.push(`      Margin Status for Invasive Carcinoma: ${m.invasiveStatus}`);
+    add.push(`Margin Status for Invasive Carcinoma: ${m.invasiveStatus}`);
     if (/negative/i.test(m.invasiveStatus)) {
       if (m.closestMargins?.length) line('Closest Margin(s)', m.closestMargins.join(', '));
       if (m.closestDistanceCm != null) line('Distance to Closest Margin', `${m.closestDistanceCm} cm`);
@@ -206,7 +201,7 @@ function renderCapSynoptic(caseData) {
     }
   }
   if (m.nonInvasiveStatus) {
-    add.push(`      Margin Status for Non-Invasive Tumor: ${m.nonInvasiveStatus}`);
+    add.push(`Margin Status for Non-Invasive Tumor: ${m.nonInvasiveStatus}`);
     if (m.nonInvasiveInvolvedMargins?.length) {
       line('Non-Invasive Margin(s) Involved', m.nonInvasiveInvolvedMargins.join(', '));
     }
@@ -214,72 +209,72 @@ function renderCapSynoptic(caseData) {
   if (m.marginComment?.trim()) line('Margin Comment', m.marginComment.trim());
   add.push('');
 
-  add.push('      REGIONAL LYMPH NODES');
+  add.push('REGIONAL LYMPH NODES');
   if (n.status) {
-    add.push(`      Regional Lymph Node Status: ${n.status}`);
+    add.push(`Regional Lymph Node Status: ${n.status}`);
     if (n.nodesPositive != null) line('Number of Lymph Nodes with Tumor', n.nodesPositive);
     if (n.nodesExamined != null) line('Number of Lymph Nodes Examined', n.nodesExamined);
     if (n.nodeComment?.trim()) line('Lymph Node Comment', n.nodeComment.trim());
   } else {
-    add.push('      Regional Lymph Node Status: Not specified');
+    add.push('Regional Lymph Node Status: Not specified');
   }
   add.push('');
 
-  add.push('      DISTANT METASTASIS');
+  add.push('DISTANT METASTASIS');
   const pm = stg.pmCategory;
   if (!pm || /not applicable/i.test(pm)) {
-    add.push('      Distant Metastasis: Not applicable — pM cannot be determined from specimen(s)');
+    add.push('Distant Metastasis: Not applicable — pM cannot be determined from specimen(s)');
   } else {
-    add.push(`      Distant Metastasis: ${pm}`);
+    add.push(`Distant Metastasis: ${pm}`);
     if (cap.metastasis?.sites?.length) {
-      add.push(`      Distant Site(s): ${cap.metastasis.sites.join('; ')}`);
+      add.push(`Distant Site(s): ${cap.metastasis.sites.join('; ')}`);
     }
   }
   add.push('');
 
-  add.push('      PATHOLOGIC STAGE CLASSIFICATION (AJCC 8th Edition)');
+  add.push('PATHOLOGIC STAGE CLASSIFICATION (AJCC 8th Edition)');
   const pfx = [stg.yPrefix && 'y', stg.rPrefix && 'r'].filter(Boolean).join('');
   const pt = stg.ptCategory;
   const pn = stg.pnCategory;
   if (pt) {
     const exp = pTExplanation(pt);
-    add.push(`      pT Category: ${pfx}${pt}${exp ? ' — ' + exp : ''}`);
+    add.push(`pT Category: ${pfx}${pt}${exp ? ' — ' + exp : ''}`);
   } else {
-    add.push('      pT Category: pT not assigned');
+    add.push('pT Category: pT not assigned');
   }
   if (pn) {
     const exp = pNExplanation(pn, n.nodesPositive, n.nodesExamined, n.tumorDepositCount);
-    add.push(`      pN Category: ${pfx}${pn}${exp ? ' — ' + exp : ''}`);
+    add.push(`pN Category: ${pfx}${pn}${exp ? ' — ' + exp : ''}`);
   } else {
-    add.push('      pN Category: pN not assigned');
+    add.push('pN Category: pN not assigned');
   }
   if (pm && !/not applicable/i.test(pm)) {
-    add.push(`      pM Category: ${pm}`);
+    add.push(`pM Category: ${pm}`);
   }
-  if (stg.mModifier) add.push('      T Suffix: (m) — multiple synchronous primary tumors');
+  if (stg.mModifier) add.push('T Suffix: (m) — multiple synchronous primary tumors');
   add.push('');
 
   if (cap.additionalFindings?.length && !cap.additionalFindings.every(f => /none/i.test(f))) {
-    add.push('      ADDITIONAL FINDINGS');
+    add.push('ADDITIONAL FINDINGS');
     for (const f of cap.additionalFindings) {
-      if (!/none/i.test(f)) add.push(`      ${f}`);
+      if (!/none/i.test(f)) add.push(f);
     }
     add.push('');
   }
 
-  add.push('      SPECIAL STUDIES');
+  add.push('SPECIAL STUDIES');
   if (ss.mmrPerformed && ss.mmrResult) {
-    add.push(`      MMR Immunohistochemistry: ${ss.mmrResult}`);
+    add.push(`MMR immunohistochemistry: ${ss.mmrResult}`);
   } else if (ss.mmrPending) {
-    add.push('      MMR Immunohistochemistry: Pending');
+    add.push('MMR immunohistochemistry pending');
   } else {
-    add.push('      MMR Immunohistochemistry: Not performed');
+    add.push('MMR immunohistochemistry: Not performed');
   }
   if (ss.molecularPending) {
-    add.push('      Molecular Studies: Pending');
+    add.push('Molecular Studies: Pending');
   } else if (ss.molecularMarkers?.length) {
     for (const mk of ss.molecularMarkers) {
-      add.push(`      Molecular: ${mk}`);
+      add.push(`Molecular: ${mk}`);
     }
   }
 
