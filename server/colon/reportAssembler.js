@@ -81,6 +81,7 @@ function buildFinalDiagnosis(caseData) {
   const t = caseData.cap.tumor;
   const m = caseData.cap.margins;
   const n = caseData.cap.nodes;
+  const stg = caseData.cap.stage;
   const ss = caseData.cap.specialStudies;
   const lines = [];
 
@@ -100,6 +101,9 @@ function buildFinalDiagnosis(caseData) {
 
       const nodeLine = buildNodeDxLine(n);
       if (nodeLine) lines.push(`      -     ${nodeLine}`);
+
+      const stageParts = [stg.ptCategory, stg.pnCategory, stg.pmCategory].filter(Boolean);
+      if (stageParts.length) lines.push(`      -     PATHOLOGIC STAGE ${stageParts.join(' ')}`);
 
       lines.push('      -     SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS');
       if (ss.mmrPending) lines.push('      -     PENDING FOR MMR IMMUNOHISTOCHEMISTRY');
