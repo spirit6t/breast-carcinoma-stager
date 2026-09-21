@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, KidneyCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, KidneyCaseData, ColonCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -343,6 +343,41 @@ export function createEmptyKidneyCase(): KidneyCaseData {
       stage: { ptCategory: null, pnCategory: null, pmCategory: null, tSuffix: '', yPrefix: false, rPrefix: false },
       additionalFindings: '',
       specialStudies: { ihcPerformed: false, ihcDescription: '', molecularPending: false, molecularMarkers: [] },
+    },
+    caseComment: '',
+    ihc: [],
+    ihcModifier: '',
+    reportText: '',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyColonCase(): ColonCaseData {
+  return {
+    version: 1,
+    organ: 'colon',
+    mode: 'colon-resection',
+    receivedDate: null,
+    signoutDate: null,
+    specimens: [],
+    cap: {
+      specimen: { procedure: null, procedureOther: '', mesorectumEval: null },
+      tumor: {
+        site: [], rectalLocation: null, histologicType: null, histologicGrade: null,
+        sizeCm: null, multiplePrimary: null, tumorExtent: null, submucosalInvasion: null,
+        perforation: null, lvi: [], pni: null, tumorBudding: null, polyp: null,
+        treatmentEffect: null, tumorComment: '',
+      },
+      margins: {
+        invasiveStatus: null, closestMargins: [], closestDistanceCm: null,
+        involvedMargins: [], nonInvasiveStatus: null, nonInvasiveInvolvedMargins: [],
+        radialMarginCm: null, distalMarginCm: null, marginComment: '',
+      },
+      nodes: { status: null, nodesPositive: null, nodesExamined: null, tumorDeposits: null, tumorDepositCount: null, nodeComment: '' },
+      metastasis: { sites: [] },
+      stage: { ptCategory: null, pnCategory: null, pmCategory: null, yPrefix: false, rPrefix: false, mModifier: false },
+      additionalFindings: [],
+      specialStudies: { mmrPerformed: false, mmrResult: null, mmrPending: false, molecularPending: false, molecularMarkers: [] },
     },
     caseComment: '',
     ihc: [],

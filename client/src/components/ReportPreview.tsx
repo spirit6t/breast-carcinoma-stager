@@ -90,9 +90,10 @@ export function ReportPreview({ caseState, update }: Props) {
   const isLung = (caseState as any).organ === 'lung';
   const isPlacenta = (caseState as any).organ === 'placenta';
   const isKidney = (caseState as any).organ === 'kidney';
+  const isColon  = (caseState as any).organ === 'colon';
 
   const saveDraft = () => {
-    const prefix = isKidney ? 'kidney' : isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : isPlacenta ? 'placenta' : 'breast';
+    const prefix = isColon ? 'colon' : isKidney ? 'kidney' : isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : isPlacenta ? 'placenta' : 'breast';
     downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
@@ -109,7 +110,7 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const c = caseState as any;
-  const bc = (isEndo || isPathology || isProstate || isLung || isPlacenta || isKidney) ? null : (caseState as CaseData);
+  const bc = (isEndo || isPathology || isProstate || isLung || isPlacenta || isKidney || isColon) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens?.length
@@ -180,7 +181,7 @@ export function ReportPreview({ caseState, update }: Props) {
     return parts.length ? parts.join(' · ') : null;
   })();
 
-  const hasData = c.specimens?.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate || isLung || isKidney;
+  const hasData = c.specimens?.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate || isLung || isKidney || isColon;
   const target = signoutTarget(c.receivedDate);
 
   return (
@@ -284,6 +285,41 @@ export function ReportPreview({ caseState, update }: Props) {
               <Section title="Margins" rows={[
                 { label: 'Status',  value: v(c.cap?.margins?.status) },
                 { label: 'Sites',   value: v((c.cap?.margins?.involvedLocations || []).join(', ')) },
+              ]} />
+            </>
+          ) : isColon ? (
+            <>
+              <Section title="Procedure" rows={[
+                { label: 'Procedure',   value: v(c.cap?.specimen?.procedure) },
+                { label: 'Site',        value: v(c.cap?.specimen?.site) },
+              ]} />
+              <Section title="Tumor" rows={[
+                { label: 'Histologic type',  value: v(c.cap?.tumor?.histologicType) },
+                { label: 'Differentiation',  value: v(c.cap?.tumor?.histologicGrade) },
+                { label: 'Size',             value: c.cap?.tumor?.sizeCm != null ? `${c.cap.tumor.sizeCm} cm` : null },
+                { label: 'Tumor extent',     value: v(c.cap?.tumor?.tumorExtent) },
+                { label: 'Polyp',            value: v(c.cap?.tumor?.polyp) },
+                { label: 'LVI',              value: v(c.cap?.tumor?.lvi) },
+                { label: 'PNI',              value: v(c.cap?.tumor?.pni) },
+                { label: 'Tumor budding',    value: v(c.cap?.tumor?.tumorBudding) },
+              ]} />
+              <Section title="Stage" rows={[
+                { label: 'pT',  value: v(c.cap?.stage?.ptCategory) },
+                { label: 'pN',  value: v(c.cap?.stage?.pnCategory) },
+                { label: 'pM',  value: v(c.cap?.stage?.pmCategory) },
+              ]} />
+              <Section title="Nodes" rows={[
+                { label: 'Positive/examined', value: (c.cap?.nodes?.nodesPositive != null && c.cap?.nodes?.nodesExamined != null) ? `${c.cap.nodes.nodesPositive}/${c.cap.nodes.nodesExamined}` : null },
+                { label: 'Tumor deposits',    value: v(c.cap?.nodes?.tumorDeposits) },
+              ]} />
+              <Section title="Margins" rows={[
+                { label: 'Closest margin',  value: v(c.cap?.margins?.closestMargin) },
+                { label: 'Distance',        value: c.cap?.margins?.distanceMm != null ? `${c.cap.margins.distanceMm} mm` : null },
+              ]} />
+              <Section title="Special Studies" rows={[
+                { label: 'MMR IHC',        value: v(c.cap?.specialStudies?.mmrStatus) },
+                { label: 'MSI',            value: v(c.cap?.specialStudies?.msiStatus) },
+                { label: 'KRAS/NRAS/BRAF', value: v(c.cap?.specialStudies?.molecularStatus) },
               ]} />
             </>
           ) : isPlacenta ? (

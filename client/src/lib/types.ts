@@ -493,7 +493,64 @@ export interface KidneyCaseData {
   updatedAt: string;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData | KidneyCaseData;
+export interface ColonCaseData {
+  version: number;
+  organ: 'colon';
+  mode: 'colon-resection';
+  receivedDate: string | null;
+  signoutDate: string | null;
+  specimens: Specimen[];
+  cap: {
+    specimen: { procedure: string | null; procedureOther: string; mesorectumEval: string | null };
+    tumor: {
+      site: string[];
+      rectalLocation: string | null;
+      histologicType: string | null;
+      histologicGrade: string | null;
+      sizeCm: number | null;
+      multiplePrimary: string | null;
+      tumorExtent: string | null;
+      submucosalInvasion: string | null;
+      perforation: string | null;
+      lvi: string[];
+      pni: string | null;
+      tumorBudding: string | null;
+      polyp: string | null;
+      treatmentEffect: string | null;
+      tumorComment: string;
+    };
+    margins: {
+      invasiveStatus: string | null;
+      closestMargins: string[];
+      closestDistanceCm: number | null;
+      involvedMargins: string[];
+      nonInvasiveStatus: string | null;
+      nonInvasiveInvolvedMargins: string[];
+      radialMarginCm: number | null;
+      distalMarginCm: number | null;
+      marginComment: string;
+    };
+    nodes: {
+      status: string | null;
+      nodesPositive: number | null;
+      nodesExamined: number | null;
+      tumorDeposits: string | null;
+      tumorDepositCount: number | null;
+      nodeComment: string;
+    };
+    metastasis: { sites: string[] };
+    stage: { ptCategory: string | null; pnCategory: string | null; pmCategory: string | null; yPrefix: boolean; rPrefix: boolean; mModifier: boolean };
+    additionalFindings: string[];
+    specialStudies: { mmrPerformed: boolean; mmrResult: string | null; mmrPending: boolean; molecularPending: boolean; molecularMarkers: string[] };
+  };
+  caseComment: string;
+  ihc: IhcEntry[];
+  ihcModifier: string;
+  reportText: string;
+  updatedAt: string;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData | KidneyCaseData | ColonCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';
