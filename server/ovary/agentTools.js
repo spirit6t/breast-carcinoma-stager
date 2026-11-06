@@ -49,7 +49,17 @@ If tumor present:
   Ask: Location of largest nodal metastatic deposit.
 Call set_nodes.
 
-BLOCK 5 — PATHOLOGIC STAGE
+BLOCK 5 — DISTANT METASTASIS & PATHOLOGIC STAGE
+Ask: Are there pathologically confirmed distant metastases (excluding retroperitoneal, pelvic, para-aortic, or regional lymph nodes)?
+  If yes, select all sites involved:
+    Pleural effusion with positive cytology (specify)
+    Liver parenchyma (specify)
+    Splenic parenchyma (specify)
+    Extra-abdominal organ(s) (specify)
+    Inguinal lymph node(s) and lymph node(s) outside the abdominal cavity (specify)
+    Transmural involvement of intestine (specify)
+    Other (specify)
+  If none confirmed: distantSitesStatus = Not applicable
 Assign pT based on extent:
   pT1a: limited to one ovary, capsule intact, no surface tumor, no malignant cells in fluids
   pT1b: limited to both ovaries, capsules intact
@@ -204,6 +214,8 @@ export const OVARY_TOOL_SCHEMAS = [
         ptCategory: { type: 'string', description: 'pT1a / pT1b / pT1c1 / pT1c2 / pT1c3 / pT2a / pT2b / pT3a / pT3b / pT3c' },
         pnCategory: { type: 'string', description: 'pN0 / pN0(i+) / pN1a / pN1b' },
         pmCategory: { type: 'string', description: 'Not applicable / pM1a (pleural effusion with positive cytology) / pM1b (liver/splenic parenchymal or extra-abdominal metastases) / pM1 (subcategory cannot be determined)' },
+        distantSitesStatus: { type: 'string', description: 'Not applicable / Sites present' },
+        distantSites: { type: 'array', items: { type: 'string' }, description: 'e.g., ["Pleural effusion with positive cytology", "Liver parenchyma", "Splenic parenchyma", "Extra-abdominal organ(s)", "Inguinal lymph node(s) and lymph node(s) outside the abdominal cavity", "Transmural involvement of intestine", "Other (specify)"]' },
         figoStage: { type: 'string', description: 'FIGO 2021: IA / IB / IC1 / IC2 / IC3 / IIA / IIB / IIIA1(i) / IIIA1(ii) / IIIA2 / IIIB / IIIC / IVA / IVB' },
         yPrefix: { type: 'boolean', description: 'Post-neoadjuvant therapy prefix' },
         rPrefix: { type: 'boolean', description: 'Recurrence prefix' },
@@ -349,10 +361,13 @@ export async function executeOvaryTool(toolName, toolInput, caseData) {
     }
 
     case 'set_stage': {
-      const { ptCategory, pnCategory, pmCategory, figoStage, yPrefix, rPrefix } = toolInput;
+      const { ptCategory, pnCategory, pmCategory, distantSitesStatus, distantSites,
+              figoStage, yPrefix, rPrefix } = toolInput;
       caseData.cap.stage.ptCategory = ptCategory ?? caseData.cap.stage.ptCategory;
       caseData.cap.stage.pnCategory = pnCategory ?? caseData.cap.stage.pnCategory;
       caseData.cap.stage.pmCategory = pmCategory ?? caseData.cap.stage.pmCategory;
+      if (distantSitesStatus !== undefined) caseData.cap.stage.distantSitesStatus = distantSitesStatus;
+      if (distantSites !== undefined) caseData.cap.stage.distantSites = distantSites;
       caseData.cap.stage.figoStage = figoStage ?? caseData.cap.stage.figoStage;
       if (yPrefix !== undefined) caseData.cap.stage.yPrefix = yPrefix;
       if (rPrefix !== undefined) caseData.cap.stage.rPrefix = rPrefix;

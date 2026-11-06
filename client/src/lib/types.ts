@@ -606,6 +606,8 @@ export interface OvaryCaseData {
       ptCategory: string | null;
       pnCategory: string | null;
       pmCategory: string | null;
+      distantSitesStatus: string | null;
+      distantSites: string[];
       figoStage: string | null;
       yPrefix: boolean;
       rPrefix: boolean;

@@ -251,17 +251,14 @@ function renderCapSynoptic(caseData) {
   if (n.nodeComment?.trim()) line('Regional Lymph Node Comment', n.nodeComment.trim());
   add.push('');
 
-  add.push('pM CATEGORY');
-  const pm = stg.pmCategory;
-  const pmLabel = {
-    'pM1a': 'pM1a: Pleural effusion with positive cytology',
-    'pM1b': 'pM1b: Liver or splenic parenchymal metastases; metastases to extra-abdominal organs (including inguinal lymph nodes and lymph nodes outside the abdominal cavity); transmural involvement of intestine',
-    'pM1':  'pM1 (subcategory cannot be determined)',
-  };
-  if (!pm || /not applicable/i.test(pm)) {
-    add.push('pM Category: Not applicable — pM cannot be determined from the submitted specimen(s)');
+  add.push('DISTANT METASTASIS');
+  if (!stg.distantSites?.length || /not applicable/i.test(stg.distantSitesStatus)) {
+    add.push('Distant Site(s) Involved: Not applicable');
   } else {
-    add.push(`pM Category: ${pmLabel[pm] || pm}`);
+    add.push('Distant Site(s) Involved:');
+    for (const site of stg.distantSites) {
+      add.push(`  ${site}`);
+    }
   }
   add.push('');
 
@@ -269,6 +266,12 @@ function renderCapSynoptic(caseData) {
   const modifiers = [stg.yPrefix && 'y (post-neoadjuvant therapy)', stg.rPrefix && 'r (recurrence)'].filter(Boolean);
   add.push(`Modified Classification: ${modifiers.length ? modifiers.join('; ') : 'Not applicable'}`);
   const pfx = [stg.yPrefix && 'y', stg.rPrefix && 'r'].filter(Boolean).join('');
+  const pm = stg.pmCategory;
+  const pmLabel = {
+    'pM1a': 'pM1a — Pleural effusion with positive cytology',
+    'pM1b': 'pM1b — Liver or splenic parenchymal metastases; metastases to extra-abdominal organs (including inguinal lymph nodes and lymph nodes outside the abdominal cavity); transmural involvement of intestine',
+    'pM1':  'pM1 (subcategory cannot be determined)',
+  };
   const pt = stg.ptCategory;
   const pn = stg.pnCategory;
   if (pt) {
@@ -285,6 +288,8 @@ function renderCapSynoptic(caseData) {
   }
   if (pm && !/not applicable/i.test(pm)) {
     add.push(`pM Category: ${pmLabel[pm] || pm}`);
+  } else {
+    add.push('pM Category: Not applicable — pM cannot be determined from the submitted specimen(s)');
   }
   if (stg.figoStage) {
     const fexp = figoExplanation(stg.figoStage);

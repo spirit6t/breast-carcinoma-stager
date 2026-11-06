@@ -47,6 +47,8 @@ export function createEmptyOvaryCase() {
         ptCategory: null,
         pnCategory: null,
         pmCategory: null,
+        distantSitesStatus: null,
+        distantSites: [],
         figoStage: null,
         yPrefix: false,
         rPrefix: false,
