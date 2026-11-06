@@ -154,7 +154,28 @@ function renderCapSynoptic(caseData) {
 
   add.push('SPECIMEN');
   line('Procedure', sp.procedure);
-  line('Specimen Integrity', t.specimenIntegrity);
+  if (sp.hysterectomyType) line('Hysterectomy Type', sp.hysterectomyType);
+
+  const hasIntegrity = sp.rightOvaryIntegrity || sp.leftOvaryIntegrity ||
+                       sp.rightFTIntegrity || sp.leftFTIntegrity || sp.uterusIntegrity;
+  if (hasIntegrity) {
+    add.push('Specimen Integrity');
+    if (sp.rightOvaryIntegrity) {
+      let ri = `Right Ovary: ${sp.rightOvaryIntegrity}`;
+      if (/ruptured/i.test(sp.rightOvaryIntegrity) && sp.rightOvaryRuptureTime)
+        ri += ` (${sp.rightOvaryRuptureTime})`;
+      add.push(ri);
+    }
+    if (sp.leftOvaryIntegrity) {
+      let li = `Left Ovary: ${sp.leftOvaryIntegrity}`;
+      if (/ruptured/i.test(sp.leftOvaryIntegrity) && sp.leftOvaryRuptureTime)
+        li += ` (${sp.leftOvaryRuptureTime})`;
+      add.push(li);
+    }
+    if (sp.rightFTIntegrity) add.push(`Right Fallopian Tube: ${sp.rightFTIntegrity}`);
+    if (sp.leftFTIntegrity) add.push(`Left Fallopian Tube: ${sp.leftFTIntegrity}`);
+    if (sp.uterusIntegrity) add.push(`Uterus: ${sp.uterusIntegrity}`);
+  }
   add.push('');
 
   add.push('TUMOR');

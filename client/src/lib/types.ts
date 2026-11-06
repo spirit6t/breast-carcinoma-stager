@@ -566,14 +566,20 @@ export interface OvaryCaseData {
   cap: {
     specimen: {
       procedure: string | null;
-      specimenIntegrity: string | null;
+      hysterectomyType: string | null;
+      rightOvaryIntegrity: string | null;
+      rightOvaryRuptureTime: string | null;
+      leftOvaryIntegrity: string | null;
+      leftOvaryRuptureTime: string | null;
+      rightFTIntegrity: string | null;
+      leftFTIntegrity: string | null;
+      uterusIntegrity: string | null;
     };
     tumor: {
       site: string | null;
       sizeCm: number | null;
       histologicType: string | null;
       histologicGrade: string | null;
-      specimenIntegrity?: string | null;
       ovarianSurfaceInvolvement: string | null;
       ftSurfaceInvolvement: string | null;
       otherOrganInvolvement: string[];

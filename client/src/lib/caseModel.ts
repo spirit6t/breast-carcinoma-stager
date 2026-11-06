@@ -425,7 +425,13 @@ export function createEmptyOvaryCase(): OvaryCaseData {
     updatedAt: new Date().toISOString(),
     specimens: [],
     cap: {
-      specimen: { procedure: null, specimenIntegrity: null },
+      specimen: {
+        procedure: null, hysterectomyType: null,
+        rightOvaryIntegrity: null, rightOvaryRuptureTime: null,
+        leftOvaryIntegrity: null, leftOvaryRuptureTime: null,
+        rightFTIntegrity: null, leftFTIntegrity: null,
+        uterusIntegrity: null,
+      },
       tumor: {
         site: null, sizeCm: null, histologicType: null, histologicGrade: null,
         ovarianSurfaceInvolvement: null, ftSurfaceInvolvement: null,

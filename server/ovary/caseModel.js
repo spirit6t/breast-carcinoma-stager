@@ -7,7 +7,14 @@ export function createEmptyOvaryCase() {
     cap: {
       specimen: {
         procedure: null,
-        specimenIntegrity: null,
+        hysterectomyType: null,
+        rightOvaryIntegrity: null,
+        rightOvaryRuptureTime: null,
+        leftOvaryIntegrity: null,
+        leftOvaryRuptureTime: null,
+        rightFTIntegrity: null,
+        leftFTIntegrity: null,
+        uterusIntegrity: null,
       },
       tumor: {
         site: null,

@@ -8,14 +8,20 @@ BLOCK 1 — PROCEDURE & SPECIMENS
 Ask: What procedure was performed and what specimens were submitted?
 Common procedures: total hysterectomy + bilateral salpingo-oophorectomy, bilateral salpingo-oophorectomy, unilateral salpingo-oophorectomy (specify side), omentectomy, peritoneal biopsies, peritoneal debulking.
 Assign CPT: 88309 for hysterectomy with adnexa; 88307 for salpingo-oophorectomy alone or omentectomy; 88305 for peritoneal biopsies or lymph nodes (separate specimens).
-Call set_specimen.
+If hysterectomy was performed, ask the hysterectomy type: Abdominal / Vaginal / Vaginal, laparoscopic-assisted / Laparoscopic / Laparoscopic, robotic-assisted / Other / Not specified.
+Ask per-organ specimen integrity:
+  - Right ovary (if submitted): Capsule intact / Capsule ruptured (→ Preoperative / Intraoperative / Unknown) / Fragmented / Not applicable
+  - Left ovary (if submitted): same options
+  - Right fallopian tube (if submitted): Serosa intact / Serosa ruptured / Fragmented
+  - Left fallopian tube (if submitted): same options
+  - Uterus (if hysterectomy): Intact / Opened / Morcellated
+Call set_specimen (include procedure + hysterectomyType + all per-organ integrity fields).
 
 BLOCK 2 — TUMOR
 Ask: What is the primary tumor site? (right ovary, left ovary, bilateral ovaries, right fallopian tube, left fallopian tube, bilateral fallopian tubes, right tubo-ovarian, left tubo-ovarian, bilateral tubo-ovarian, primary peritoneum)
 Ask: Histologic type? (high-grade serous carcinoma, low-grade serous carcinoma, endometrioid carcinoma, clear cell carcinoma, mucinous adenocarcinoma, carcinosarcoma, immature teratoma, dysgerminoma, granulosa cell tumor, etc.)
 Ask: Grade if applicable (endometrioid/mucinous: G1/G2/G3; immature teratoma: grade 1/2/3)
 Ask: Tumor size in cm.
-Ask: Specimen integrity — capsule intact or ruptured? (required for ovarian tumors; if ruptured, was it intraoperative or preoperative?)
 Call set_tumor.
 
 BLOCK 3 — EXTENT
@@ -80,7 +86,7 @@ RULES:
 export const OVARY_TOOL_SCHEMAS = [
   {
     name: 'set_specimen',
-    description: 'Set procedure performed and specimens submitted with CPT codes.',
+    description: 'Set procedure performed, specimens submitted, hysterectomy type, and per-organ specimen integrity.',
     input_schema: {
       type: 'object',
       properties: {
@@ -99,6 +105,14 @@ export const OVARY_TOOL_SCHEMAS = [
           },
         },
         procedure: { type: 'string', description: 'Primary procedure description' },
+        hysterectomyType: { type: 'string', description: 'Abdominal / Vaginal / Vaginal, laparoscopic-assisted / Laparoscopic / Laparoscopic, robotic-assisted / Other / Not specified' },
+        rightOvaryIntegrity: { type: 'string', description: 'Capsule intact / Capsule ruptured / Fragmented / Not applicable' },
+        rightOvaryRuptureTime: { type: 'string', description: 'Preoperative / Intraoperative / Unknown (only when capsule ruptured)' },
+        leftOvaryIntegrity: { type: 'string', description: 'Capsule intact / Capsule ruptured / Fragmented / Not applicable' },
+        leftOvaryRuptureTime: { type: 'string', description: 'Preoperative / Intraoperative / Unknown (only when capsule ruptured)' },
+        rightFTIntegrity: { type: 'string', description: 'Serosa intact / Serosa ruptured / Fragmented' },
+        leftFTIntegrity: { type: 'string', description: 'Serosa intact / Serosa ruptured / Fragmented' },
+        uterusIntegrity: { type: 'string', description: 'Intact / Opened / Morcellated (when hysterectomy performed)' },
       },
       required: ['specimens', 'procedure'],
     },
@@ -113,7 +127,6 @@ export const OVARY_TOOL_SCHEMAS = [
         histologicType: { type: 'string' },
         histologicGrade: { type: 'string', description: 'Grade if applicable (not for high-grade serous)' },
         sizeCm: { type: 'number', description: 'Greatest dimension in cm' },
-        specimenIntegrity: { type: 'string', description: 'e.g., Capsule intact / Capsule ruptured intraoperatively' },
         tumorComment: { type: 'string' },
       },
       required: ['site', 'histologicType'],
@@ -247,19 +260,29 @@ export async function executeOvaryTool(toolName, toolInput, caseData) {
 
   switch (toolName) {
     case 'set_specimen': {
-      const { specimens, procedure } = toolInput;
+      const { specimens, procedure, hysterectomyType,
+              rightOvaryIntegrity, rightOvaryRuptureTime,
+              leftOvaryIntegrity, leftOvaryRuptureTime,
+              rightFTIntegrity, leftFTIntegrity, uterusIntegrity } = toolInput;
       caseData.specimens = specimens.map(s => ({ ...s, cptAddons: s.cptAddons || [] }));
       caseData.cap.specimen.procedure = procedure;
+      if (hysterectomyType !== undefined) caseData.cap.specimen.hysterectomyType = hysterectomyType;
+      if (rightOvaryIntegrity !== undefined) caseData.cap.specimen.rightOvaryIntegrity = rightOvaryIntegrity;
+      if (rightOvaryRuptureTime !== undefined) caseData.cap.specimen.rightOvaryRuptureTime = rightOvaryRuptureTime;
+      if (leftOvaryIntegrity !== undefined) caseData.cap.specimen.leftOvaryIntegrity = leftOvaryIntegrity;
+      if (leftOvaryRuptureTime !== undefined) caseData.cap.specimen.leftOvaryRuptureTime = leftOvaryRuptureTime;
+      if (rightFTIntegrity !== undefined) caseData.cap.specimen.rightFTIntegrity = rightFTIntegrity;
+      if (leftFTIntegrity !== undefined) caseData.cap.specimen.leftFTIntegrity = leftFTIntegrity;
+      if (uterusIntegrity !== undefined) caseData.cap.specimen.uterusIntegrity = uterusIntegrity;
       return { success: true, specimens: caseData.specimens };
     }
 
     case 'set_tumor': {
-      const { site, histologicType, histologicGrade, sizeCm, specimenIntegrity, tumorComment } = toolInput;
+      const { site, histologicType, histologicGrade, sizeCm, tumorComment } = toolInput;
       caseData.cap.tumor.site = site ?? caseData.cap.tumor.site;
       caseData.cap.tumor.histologicType = histologicType ?? caseData.cap.tumor.histologicType;
       caseData.cap.tumor.histologicGrade = histologicGrade ?? caseData.cap.tumor.histologicGrade;
       caseData.cap.tumor.sizeCm = sizeCm ?? caseData.cap.tumor.sizeCm;
-      caseData.cap.tumor.specimenIntegrity = specimenIntegrity ?? caseData.cap.tumor.specimenIntegrity;
       caseData.cap.tumor.tumorComment = tumorComment ?? caseData.cap.tumor.tumorComment;
       return { success: true, tumor: caseData.cap.tumor };
     }
