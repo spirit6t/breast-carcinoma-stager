@@ -26,6 +26,9 @@ Call set_tumor.
 
 BLOCK 3 — EXTENT
 Ask: Is there ovarian or fallopian tube surface involvement?
+Ask (serous or seromucinous borderline tumors / advanced-stage): Are implants present?
+  Options: Not applicable / Not sampled / Not identified / Present (specify sites) / Indeterminate
+  (Note: serous borderline implants formerly classified as "invasive" are now considered extraovarian low-grade serous carcinoma)
 Ask: What other organs/structures are involved? (uterine corpus, uterine cervix, pelvic peritoneum, abdominal peritoneum, omentum, bowel — select all that apply)
 Ask: Largest extrapelvic peritoneal focus — microscopic, macroscopic ≤2 cm, or macroscopic >2 cm?
 Ask: Peritoneal/ascitic fluid — negative, malignant cells present, or not submitted?
@@ -143,7 +146,7 @@ export const OVARY_TOOL_SCHEMAS = [
         otherOrganInvolvement: { type: 'array', items: { type: 'string' }, description: 'e.g., [uterine corpus, omentum, pelvic peritoneum]' },
         largestExtrapelvicFocus: { type: 'string', description: 'Not applicable / Microscopic / Macroscopic ≤2 cm / Macroscopic >2 cm' },
         peritonealCytology: { type: 'string', description: 'Negative / Malignant cells present / Not submitted' },
-        implants: { type: 'string', description: 'For borderline tumors: not identified / present (non-invasive) / present (invasive/extraovarian LGSC)' },
+        implants: { type: 'string', description: 'Not applicable / Not sampled / Not identified / Present (specify sites) / Indeterminate' },
         crs: { type: 'string', description: 'CRS1 / CRS2 / CRS3 (neoadjuvant cases only)' },
       },
     },

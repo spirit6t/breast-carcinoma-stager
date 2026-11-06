@@ -185,10 +185,10 @@ function renderCapSynoptic(caseData) {
   if (t.sizeCm != null) line('Tumor Size', `${t.sizeCm} cm`);
   if (t.ovarianSurfaceInvolvement) line('Ovarian Surface Involvement', t.ovarianSurfaceInvolvement);
   if (t.ftSurfaceInvolvement) line('Fallopian Tube Surface Involvement', t.ftSurfaceInvolvement);
+  if (t.implants) line('Implants', t.implants);
   if (t.otherOrganInvolvement?.length) line('Other Tissue / Organ Involvement', t.otherOrganInvolvement.join('; '));
   if (t.largestExtrapelvicFocus) line('Largest Extrapelvic Peritoneal Focus', t.largestExtrapelvicFocus);
   if (t.peritonealCytology) line('Peritoneal / Ascitic Fluid', t.peritonealCytology);
-  if (t.implants && !/not applicable/i.test(t.implants)) line('Implants', t.implants);
   if (t.crs && !/not applicable/i.test(t.crs)) line('Chemotherapy Response Score (CRS)', t.crs);
   if (t.tumorComment?.trim()) line('Tumor Comment', t.tumorComment.trim());
   add.push('');
