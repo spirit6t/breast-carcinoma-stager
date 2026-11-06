@@ -606,6 +606,13 @@ export interface OvaryCaseData {
       additionalPending: string[];
     };
     additionalFindings: string[];
+    uterineFindings: {
+      cervix: string;
+      endometrium: string;
+      myometrium: string;
+      fallopianTube: string | null;
+      serosa: string;
+    } | null;
   };
   caseComment: string | null;
 }

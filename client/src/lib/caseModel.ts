@@ -439,6 +439,7 @@ export function createEmptyOvaryCase(): OvaryCaseData {
       stage: { ptCategory: null, pnCategory: null, pmCategory: null, figoStage: null, yPrefix: false, rPrefix: false },
       specialStudies: { p53Status: null, p53Pending: false, additionalPending: [] },
       additionalFindings: [],
+      uterineFindings: null,
     },
     caseComment: null,
   };

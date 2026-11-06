@@ -84,6 +84,15 @@ function buildFinalDiagnosis(caseData) {
         lines.push(`      -     FIGO STAGE ${up(stg.figoStage)}`);
       }
 
+      const uf = caseData.cap.uterineFindings;
+      if (uf) {
+        lines.push(`      -     CERVIX: ${up(uf.cervix)}`);
+        lines.push(`      -     ENDOMETRIUM: ${up(uf.endometrium)}`);
+        lines.push(`      -     MYOMETRIUM: ${up(uf.myometrium)}`);
+        if (uf.fallopianTube) lines.push(`      -     FALLOPIAN TUBE: ${up(uf.fallopianTube)}`);
+        lines.push(`      -     SEROSA: ${up(uf.serosa)}`);
+      }
+
       lines.push('      -     SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS');
 
       if (ss.p53Pending) lines.push('      -     PENDING FOR p53 IMMUNOHISTOCHEMISTRY');

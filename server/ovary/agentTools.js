@@ -53,12 +53,21 @@ If neoadjuvant therapy: was CRS (Chemotherapy Response Score) assessed? (CRS1/CR
 Ask about any other pending molecular or biomarker studies.
 Call set_special_studies.
 
-BLOCK 7 — ADDITIONAL FINDINGS
-Ask: Any additional findings? (STIC, endometriosis, endosalpingiosis, other)
+BLOCK 7 — UTERINE FINDINGS (required when procedure includes hysterectomy)
+If the uterus was part of the specimen, ask about each component in this order:
+  Cervix — default "Negative for dysplasia" unless otherwise specified
+  Endometrium — describe pattern (e.g., Atrophic endometrium / Proliferative endometrium / Endometrial polyp / Inactive endometrium)
+  Myometrium — describe findings (e.g., Leiomyomata / Adenomyosis / No significant pathology); always mention leiomyomata if present
+  Fallopian tube — describe findings if included with uterus (e.g., Unremarkable / STIC / Carcinoma involvement)
+  Serosa — default "Histologically unremarkable" unless tumor involved
+Call set_uterine_findings.
+
+BLOCK 8 — ADDITIONAL FINDINGS
+Ask: Any other additional findings? (STIC in separate FT specimen, endometriosis, endosalpingiosis, other)
 Call set_additional_findings if relevant.
 Call set_case_comment if there is a free-text comment.
 
-BLOCK 8 — ASSEMBLE
+BLOCK 9 — ASSEMBLE
 Call assemble_report to generate the final report.
 
 RULES:
@@ -171,6 +180,21 @@ export const OVARY_TOOL_SCHEMAS = [
     },
   },
   {
+    name: 'set_uterine_findings',
+    description: 'Set uterine findings when hysterectomy was performed. Reports cervix, endometrium, myometrium, fallopian tube, and serosa.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cervix:        { type: 'string', description: 'e.g., Negative for dysplasia' },
+        endometrium:   { type: 'string', description: 'e.g., Atrophic endometrium / Proliferative endometrium / Endometrial polyp' },
+        myometrium:    { type: 'string', description: 'e.g., Leiomyomata / Adenomyosis / No significant pathology' },
+        fallopianTube: { type: 'string', description: 'e.g., Unremarkable / STIC / Tumor involvement' },
+        serosa:        { type: 'string', description: 'e.g., Histologically unremarkable / Tumor involvement' },
+      },
+      required: ['cervix', 'endometrium', 'myometrium', 'serosa'],
+    },
+  },
+  {
     name: 'set_additional_findings',
     description: 'Set additional pathologic findings.',
     input_schema: {
@@ -280,6 +304,12 @@ export async function executeOvaryTool(toolName, toolInput, caseData) {
       if (p53Status !== undefined) caseData.cap.specialStudies.p53Status = p53Status;
       if (p53Pending !== undefined) caseData.cap.specialStudies.p53Pending = p53Pending;
       if (additionalPending !== undefined) caseData.cap.specialStudies.additionalPending = additionalPending;
+      return { success: true };
+    }
+
+    case 'set_uterine_findings': {
+      const { cervix, endometrium, myometrium, fallopianTube, serosa } = toolInput;
+      caseData.cap.uterineFindings = { cervix, endometrium, myometrium, fallopianTube: fallopianTube || null, serosa };
       return { success: true };
     }
 

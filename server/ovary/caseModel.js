@@ -46,6 +46,7 @@ export function createEmptyOvaryCase() {
         additionalPending: [],
       },
       additionalFindings: [],
+      uterineFindings: null,
     },
     caseComment: null,
   };
