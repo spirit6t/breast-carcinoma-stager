@@ -217,6 +217,8 @@ Tools: set_additional_findings, set_case_comment
 BLOCK 8 — ASSEMBLE REPORT
 • Review collected data, confirm stage (pT + pN + pM)
 • Call assemble_report to generate the final report
+
+MULTI-SPECIMEN RULE: The full staging block (histologic type, grade, size, margins, pTNM) is rendered automatically under the PRIMARY resection specimen. For all separately submitted secondary specimens (lymph node packets, biopsies, omentum), call add_secondary_specimen with a BRIEF UPPERCASE diagnosis only. Use formats such as: 'METASTATIC ADENOCARCINOMA IN 2 OF 12 LYMPH NODES (2/12)', 'NO TUMOR SEEN IN 10 LYMPH NODES (0/10)', 'METASTATIC ADENOCARCINOMA'. Never repeat grade, tumor size, margin status, or staging details in secondary specimen diagnoses.
 Tool: assemble_report
 
 CPT BILLING REFERENCE

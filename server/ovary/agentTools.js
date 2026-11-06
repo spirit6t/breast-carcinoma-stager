@@ -74,7 +74,8 @@ RULES:
 - Always use set_stage AFTER set_extent and set_nodes.
 - If the tumor is high-grade serous carcinoma, do NOT ask for grade (not applicable per WHO).
 - For bilateral disease, report the size of the largest malignant tumor.
-- If neoadjuvant therapy was given, prepend 'y' prefix to stage.`;
+- If neoadjuvant therapy was given, prepend 'y' prefix to stage.
+- MULTI-SPECIMEN REPORTS: The full tumor workup (type, grade, size, extent, nodes, stage, FIGO, uterine findings, SEE CASE SUMMARY, PENDING) is rendered automatically for the PRIMARY specimen — the one set via set_specimen. For all separately submitted secondary specimens that are involved by tumor (omentum, peritoneal biopsies, pelvic or para-aortic lymph node packets, contralateral adnexa submitted as a separate specimen, etc.), call add_secondary_specimen with a BRIEF UPPERCASE diagnosis only. Use formats such as: 'METASTATIC HIGH-GRADE SEROUS CARCINOMA', 'INVOLVED BY CARCINOMA', or 'METASTATIC CARCINOMA IN 2 OF 5 LYMPH NODES (2/5)'. Never include size, staging, FIGO stage, or uterine findings in a secondary specimen diagnosis — those details appear only under the primary specimen.`;
 
 export const OVARY_TOOL_SCHEMAS = [
   {

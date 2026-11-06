@@ -19,7 +19,8 @@ Key rules:
 - Rhabdoid and sarcomatoid features are reported separately; both escalate to G4.
 - Necrosis is an independent prognostic factor — always record presence/absence.
 - pT auto-computes from extent + size; only call set_stage if you need to override or add prefix/suffix.
-- pM1 applies when adrenal is involved non-contiguously (separate nodule).`;
+- pM1 applies when adrenal is involved non-contiguously (separate nodule).
+- MULTI-SPECIMEN REPORTS: The full workup (histologic type, grade, size, extent, margins, stage) is rendered automatically under the PRIMARY nephrectomy specimen. For separately submitted secondary specimens (lymph node packets, adrenal, etc.), call add_secondary_specimen with a BRIEF UPPERCASE diagnosis only. Use formats such as: 'METASTATIC CLEAR CELL RENAL CELL CARCINOMA IN 1 OF 4 LYMPH NODES (1/4)', 'NO METASTATIC CARCINOMA IN 6 LYMPH NODES (0/6)', 'ADRENAL GLAND, UNINVOLVED'. Never repeat grade, tumor size, margin status, or staging in secondary specimen diagnoses.`;
 
 export const KIDNEY_TOOL_SCHEMAS = [
   {
