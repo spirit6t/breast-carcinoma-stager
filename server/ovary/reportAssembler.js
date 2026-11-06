@@ -61,12 +61,18 @@ function buildFinalDiagnosis(caseData) {
   const ss = caseData.cap.specialStudies;
   const lines = [];
 
+  let primaryRendered = false;
+
   for (const spec of specimens) {
     lines.push(`${spec.letter}. ${up(spec.designation)}`);
 
     if (spec.diagnosis) {
+      // Agent supplied a brief dx for this specimen — render it as-is
       lines.push(`      -     ${up(spec.diagnosis)}`);
-    } else {
+    } else if (!primaryRendered) {
+      // First specimen without an explicit diagnosis = primary — full workup
+      primaryRendered = true;
+
       lines.push(`      -     ${buildPrimaryDxLine(t)}`);
 
       const extentLine = buildExtentLine(t);
@@ -101,6 +107,10 @@ function buildFinalDiagnosis(caseData) {
           lines.push(`      -     PENDING FOR ${up(p)}`);
         }
       }
+    } else {
+      // Additional specimen without explicit diagnosis — auto-generate brief involvement line
+      const typeStr = up(t.histologicType || 'CARCINOMA');
+      lines.push(`      -     INVOLVED BY ${typeStr}`);
     }
     lines.push('');
   }
