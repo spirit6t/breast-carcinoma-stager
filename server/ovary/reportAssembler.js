@@ -218,6 +218,8 @@ function renderCapSynoptic(caseData) {
   add.push('');
 
   add.push('pTNM CLASSIFICATION (AJCC 8th Edition)');
+  const modifiers = [stg.yPrefix && 'y (post-neoadjuvant therapy)', stg.rPrefix && 'r (recurrence)'].filter(Boolean);
+  add.push(`Modified Classification: ${modifiers.length ? modifiers.join('; ') : 'Not applicable'}`);
   const pfx = [stg.yPrefix && 'y', stg.rPrefix && 'r'].filter(Boolean).join('');
   const pt = stg.ptCategory;
   const pn = stg.pnCategory;
