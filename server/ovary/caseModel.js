@@ -37,6 +37,10 @@ export function createEmptyOvaryCase() {
         nodesGt10mm: null,
         nodesLe10mm: null,
         nodesItc: null,
+        nodalSitesWithTumor: [],
+        largestDepositMm: null,
+        largestDepositLocation: null,
+        nodalSitesExamined: [],
         nodeComment: null,
       },
       stage: {

@@ -596,6 +596,10 @@ export interface OvaryCaseData {
       nodesGt10mm: number | null;
       nodesLe10mm: number | null;
       nodesItc: number | null;
+      nodalSitesWithTumor: string[];
+      largestDepositMm: string | null;
+      largestDepositLocation: string | null;
+      nodalSitesExamined: string[];
       nodeComment: string | null;
     };
     stage: {

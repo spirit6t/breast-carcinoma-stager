@@ -194,17 +194,18 @@ function renderCapSynoptic(caseData) {
   add.push('');
 
   add.push('REGIONAL LYMPH NODES');
-  if (n.status && !/not applicable/i.test(n.status)) {
-    add.push(`Regional Lymph Node Status: ${n.status}`);
-    if (n.nodesPositive != null) line('Number of Nodes with Metastasis', n.nodesPositive);
-    if (n.nodesExamined != null) line('Number of Lymph Nodes Examined', n.nodesExamined);
-    if (n.nodesGt10mm != null) line('Nodes with Metastasis >10 mm', n.nodesGt10mm);
-    if (n.nodesLe10mm != null) line('Nodes with Metastasis ≤10 mm', n.nodesLe10mm);
-    if (n.nodesItc != null) line('Nodes with Isolated Tumor Cells (≤0.2 mm)', n.nodesItc);
-    if (n.nodeComment?.trim()) line('Lymph Node Comment', n.nodeComment.trim());
-  } else {
-    add.push('Regional Lymph Node Status: Not applicable (no regional lymph nodes submitted or found)');
+  add.push(`Regional Lymph Node Status: ${n.status || 'Not applicable (no regional lymph nodes submitted or found)'}`);
+  if (n.status && /tumor present/i.test(n.status)) {
+    if (n.nodesGt10mm != null) line('Number of Nodes with Metastasis Greater than 10 mm', n.nodesGt10mm);
+    if (n.nodesLe10mm != null) line('Number of Nodes with Metastasis 10 mm or Less (excluding ITCs)', n.nodesLe10mm);
+    if (n.nodesItc != null) line('Number of Nodes with Isolated Tumor Cells (ITCs) (0.2 mm or less)', n.nodesItc);
+    if (n.nodalSitesWithTumor?.length) line('Nodal Site(s) with Tumor', n.nodalSitesWithTumor.join('; '));
+    if (n.largestDepositMm) line('Size of Largest Nodal Metastatic Deposit', `${n.largestDepositMm} mm`);
+    if (n.largestDepositLocation) line('Location of Largest Nodal Metastatic Deposit', n.largestDepositLocation);
   }
+  if (n.nodesExamined != null) line('Number of Lymph Nodes Examined', n.nodesExamined);
+  if (n.nodalSitesExamined?.length) line('Nodal Site(s) Examined', n.nodalSitesExamined.join('; '));
+  if (n.nodeComment?.trim()) line('Regional Lymph Node Comment', n.nodeComment.trim());
   add.push('');
 
   add.push('DISTANT METASTASIS');

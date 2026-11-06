@@ -35,8 +35,18 @@ Ask: Peritoneal/ascitic fluid — negative, malignant cells present, or not subm
 Call set_extent.
 
 BLOCK 4 — LYMPH NODES
-Ask: Were regional lymph nodes submitted? How many examined and how many positive?
-If positive: were any metastases >10 mm in greatest dimension?
+Ask: Were regional lymph nodes submitted?
+  Options: Not applicable (no regional lymph nodes submitted or found) / All regional lymph nodes negative for tumor cells / Tumor present in regional lymph node(s)
+Ask: Total number of lymph nodes examined.
+Ask: Nodal site(s) examined (select all: Right pelvic / Left pelvic / Pelvic NOS / Right para-aortic / Left para-aortic / Para-aortic NOS / Other).
+If tumor present:
+  Ask: Number of positive nodes total.
+  Ask: Number of nodes with metastasis GREATER THAN 10 mm.
+  Ask: Number of nodes with metastasis 10 mm OR LESS (excluding ITCs).
+  Ask: Number of nodes with isolated tumor cells (0.2 mm or less) — only if no metastasis >0.2 mm in other nodes.
+  Ask: Nodal site(s) with tumor (select all that apply, same options as above).
+  Ask: Size of largest nodal metastatic deposit (in mm).
+  Ask: Location of largest nodal metastatic deposit.
 Call set_nodes.
 
 BLOCK 5 — PATHOLOGIC STAGE
@@ -153,16 +163,20 @@ export const OVARY_TOOL_SCHEMAS = [
   },
   {
     name: 'set_nodes',
-    description: 'Set regional lymph node status.',
+    description: 'Set regional lymph node status per CAP terminology.',
     input_schema: {
       type: 'object',
       properties: {
-        status: { type: 'string', description: 'Not applicable / All negative / Positive' },
-        nodesPositive: { type: 'number' },
-        nodesExamined: { type: 'number' },
-        nodesGt10mm: { type: 'number', description: 'Number of nodes with metastasis >10 mm' },
-        nodesLe10mm: { type: 'number', description: 'Number of nodes with metastasis ≤10 mm' },
-        nodesItc: { type: 'number', description: 'Number of nodes with isolated tumor cells (≤0.2 mm)' },
+        status: { type: 'string', description: 'Not applicable (no regional lymph nodes submitted or found) / All regional lymph nodes negative for tumor cells / Tumor present in regional lymph node(s)' },
+        nodesPositive: { type: 'number', description: 'Total number of positive nodes' },
+        nodesExamined: { type: 'number', description: 'Total number of lymph nodes examined' },
+        nodesGt10mm: { type: 'number', description: 'Number of nodes with metastasis greater than 10 mm' },
+        nodesLe10mm: { type: 'number', description: 'Number of nodes with metastasis 10 mm or less (excluding ITCs)' },
+        nodesItc: { type: 'number', description: 'Number of nodes with isolated tumor cells (0.2 mm or less) — required only if no metastasis >0.2 mm in other nodes' },
+        nodalSitesWithTumor: { type: 'array', items: { type: 'string' }, description: 'e.g., ["Right pelvic", "Left para-aortic"]' },
+        largestDepositMm: { type: 'string', description: 'Size of largest nodal metastatic deposit, e.g., "12 mm", "At least 8 mm"' },
+        largestDepositLocation: { type: 'string', description: 'Location of largest nodal metastatic deposit, e.g., "Right pelvic", "Left para-aortic"' },
+        nodalSitesExamined: { type: 'array', items: { type: 'string' }, description: 'e.g., ["Pelvic, NOS", "Para-aortic, NOS"]' },
         nodeComment: { type: 'string' },
       },
       required: ['status'],
@@ -304,13 +318,19 @@ export async function executeOvaryTool(toolName, toolInput, caseData) {
     }
 
     case 'set_nodes': {
-      const { status, nodesPositive, nodesExamined, nodesGt10mm, nodesLe10mm, nodesItc, nodeComment } = toolInput;
+      const { status, nodesPositive, nodesExamined, nodesGt10mm, nodesLe10mm, nodesItc,
+              nodalSitesWithTumor, largestDepositMm, largestDepositLocation,
+              nodalSitesExamined, nodeComment } = toolInput;
       caseData.cap.nodes.status = status;
       if (nodesPositive !== undefined) caseData.cap.nodes.nodesPositive = nodesPositive;
       if (nodesExamined !== undefined) caseData.cap.nodes.nodesExamined = nodesExamined;
       if (nodesGt10mm !== undefined) caseData.cap.nodes.nodesGt10mm = nodesGt10mm;
       if (nodesLe10mm !== undefined) caseData.cap.nodes.nodesLe10mm = nodesLe10mm;
       if (nodesItc !== undefined) caseData.cap.nodes.nodesItc = nodesItc;
+      if (nodalSitesWithTumor !== undefined) caseData.cap.nodes.nodalSitesWithTumor = nodalSitesWithTumor;
+      if (largestDepositMm !== undefined) caseData.cap.nodes.largestDepositMm = largestDepositMm;
+      if (largestDepositLocation !== undefined) caseData.cap.nodes.largestDepositLocation = largestDepositLocation;
+      if (nodalSitesExamined !== undefined) caseData.cap.nodes.nodalSitesExamined = nodalSitesExamined;
       if (nodeComment !== undefined) caseData.cap.nodes.nodeComment = nodeComment;
       return { success: true, nodes: caseData.cap.nodes };
     }
