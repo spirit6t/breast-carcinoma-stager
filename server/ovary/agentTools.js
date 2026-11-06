@@ -62,7 +62,10 @@ Assign pT based on extent:
   pT3b: macroscopic peritoneal metastasis ≤2 cm
   pT3c: macroscopic peritoneal metastasis >2 cm (includes liver/splenic capsule)
 Assign pN: pN0 / pN0(i+) / pN1a (≤10mm) / pN1b (>10mm)
-Assign pM if applicable: pM1a (pleural effusion + cytology) / pM1b (liver/splenic parenchyma; extra-abdominal organs)
+Assign pM if applicable — check the specimen list first: if a pleural effusion cytology specimen shows malignant cells, assign pM1a:
+  pM1a: Pleural effusion with positive cytology
+  pM1b: Liver or splenic parenchymal metastases; metastases to extra-abdominal organs (including inguinal lymph nodes and lymph nodes outside the abdominal cavity); transmural involvement of intestine
+  pM1 (subcategory cannot be determined): when M1 is confirmed but cannot be categorized
 Assign FIGO 2021 stage.
 Call set_stage.
 
@@ -190,7 +193,7 @@ export const OVARY_TOOL_SCHEMAS = [
       properties: {
         ptCategory: { type: 'string', description: 'pT1a / pT1b / pT1c1 / pT1c2 / pT1c3 / pT2a / pT2b / pT3a / pT3b / pT3c' },
         pnCategory: { type: 'string', description: 'pN0 / pN0(i+) / pN1a / pN1b' },
-        pmCategory: { type: 'string', description: 'pM1a / pM1b / Not applicable' },
+        pmCategory: { type: 'string', description: 'Not applicable / pM1a (pleural effusion with positive cytology) / pM1b (liver/splenic parenchymal or extra-abdominal metastases) / pM1 (subcategory cannot be determined)' },
         figoStage: { type: 'string', description: 'FIGO 2021: IA / IB / IC1 / IC2 / IC3 / IIA / IIB / IIIA1(i) / IIIA1(ii) / IIIA2 / IIIB / IIIC / IVA / IVB' },
         yPrefix: { type: 'boolean', description: 'Post-neoadjuvant therapy prefix' },
         rPrefix: { type: 'boolean', description: 'Recurrence prefix' },

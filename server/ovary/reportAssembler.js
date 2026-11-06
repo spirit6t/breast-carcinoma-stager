@@ -208,12 +208,17 @@ function renderCapSynoptic(caseData) {
   if (n.nodeComment?.trim()) line('Regional Lymph Node Comment', n.nodeComment.trim());
   add.push('');
 
-  add.push('DISTANT METASTASIS');
+  add.push('pM CATEGORY');
   const pm = stg.pmCategory;
+  const pmLabel = {
+    'pM1a': 'pM1a: Pleural effusion with positive cytology',
+    'pM1b': 'pM1b: Liver or splenic parenchymal metastases; metastases to extra-abdominal organs (including inguinal lymph nodes and lymph nodes outside the abdominal cavity); transmural involvement of intestine',
+    'pM1':  'pM1 (subcategory cannot be determined)',
+  };
   if (!pm || /not applicable/i.test(pm)) {
-    add.push('Distant Metastasis: Not applicable — pM cannot be determined from specimen(s)');
+    add.push('pM Category: Not applicable — pM cannot be determined from the submitted specimen(s)');
   } else {
-    add.push(`Distant Metastasis: ${pm}`);
+    add.push(`pM Category: ${pmLabel[pm] || pm}`);
   }
   add.push('');
 
@@ -236,7 +241,7 @@ function renderCapSynoptic(caseData) {
     add.push('pN Category: pN not assigned');
   }
   if (pm && !/not applicable/i.test(pm)) {
-    add.push(`pM Category: ${pm}`);
+    add.push(`pM Category: ${pmLabel[pm] || pm}`);
   }
   if (stg.figoStage) {
     add.push(`FIGO Stage (2021): ${stg.figoStage}`);
