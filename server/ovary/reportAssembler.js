@@ -217,7 +217,7 @@ function renderCapSynoptic(caseData) {
   }
   add.push('');
 
-  add.push('PATHOLOGIC STAGE CLASSIFICATION (AJCC 8th Edition)');
+  add.push('pTNM CLASSIFICATION (AJCC 8th Edition)');
   const pfx = [stg.yPrefix && 'y', stg.rPrefix && 'r'].filter(Boolean).join('');
   const pt = stg.ptCategory;
   const pn = stg.pnCategory;
