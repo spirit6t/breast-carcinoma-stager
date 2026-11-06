@@ -256,9 +256,9 @@ function renderCapSynoptic(caseData) {
     add.push('');
   }
 
-  add.push('SPECIAL STUDIES');
+  add.push('SPECIAL STUDIES (Note N)');
   if (ss.p53Pending) {
-    add.push('p53 immunohistochemistry pending');
+    add.push('p53 Immunohistochemistry: Pending');
   } else if (ss.p53Status) {
     add.push(`p53 Immunohistochemistry: ${ss.p53Status}`);
   } else {

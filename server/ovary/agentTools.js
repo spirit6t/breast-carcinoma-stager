@@ -70,7 +70,17 @@ Assign FIGO 2021 stage.
 Call set_stage.
 
 BLOCK 6 — SPECIAL STUDIES
-Ask: Was p53 IHC performed? Result? (normal/wild-type, abnormal/overexpression, abnormal/null, abnormal/cytoplasmic)
+Ask: Was p53 IHC performed? If yes, select result:
+  Normal (wild-type) expression
+  Abnormal (mutated) expression:
+    — Overexpression (strong, diffuse nuclear expression)
+    — Null (lack of nuclear or cytoplasmic expression)
+    — Cytoplasmic only (with or without nuclear expression)
+  Subclonal abnormal (mutated) expression:
+    — Overexpression
+    — Null
+    — Cytoplasmic only
+  If pending: mark p53Pending = true (pending studies are listed in the Comments section per CAP Note N).
 If neoadjuvant therapy: was CRS (Chemotherapy Response Score) assessed? (CRS1/CRS2/CRS3)
 Ask about any other pending molecular or biomarker studies.
 Call set_special_studies.
@@ -207,7 +217,7 @@ export const OVARY_TOOL_SCHEMAS = [
     input_schema: {
       type: 'object',
       properties: {
-        p53Status: { type: 'string', description: 'Normal (wild-type) / Abnormal - overexpression / Abnormal - null / Abnormal - cytoplasmic' },
+        p53Status: { type: 'string', description: 'Normal (wild-type) expression / Abnormal (mutated) expression — Overexpression (strong, diffuse nuclear expression) / Abnormal (mutated) expression — Null (lack of nuclear or cytoplasmic expression) / Abnormal (mutated) expression — Cytoplasmic only (with or without nuclear expression) / Subclonal abnormal (mutated) expression — Overexpression / Subclonal abnormal (mutated) expression — Null / Subclonal abnormal (mutated) expression — Cytoplasmic only' },
         p53Pending: { type: 'boolean' },
         additionalPending: { type: 'array', items: { type: 'string' }, description: 'e.g., [BRCA1/2 molecular testing, MSI]' },
       },
