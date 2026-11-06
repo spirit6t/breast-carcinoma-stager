@@ -147,6 +147,26 @@ function pTExplanation(pt) {
   return map[pt] || '';
 }
 
+function figoExplanation(stage) {
+  const map = {
+    'IA':        'tumor limited to one ovary, capsule intact, no surface tumor, no malignant cells in fluids',
+    'IB':        'tumor limited to both ovaries, capsules intact, no surface tumor, no malignant cells in fluids',
+    'IC1':       'surgical spill',
+    'IC2':       'capsule ruptured before surgery or tumor on ovarian/fallopian tube surface',
+    'IC3':       'malignant cells in ascites or peritoneal washings',
+    'IIA':       'extension and/or implants on uterus and/or fallopian tubes and/or ovaries',
+    'IIB':       'extension to other pelvic intraperitoneal tissues',
+    'IIIA1(i)':  'positive retroperitoneal lymph nodes only — metastasis ≤10 mm',
+    'IIIA1(ii)': 'positive retroperitoneal lymph nodes only — metastasis >10 mm',
+    'IIIA2':     'microscopic extrapelvic peritoneal involvement ± positive retroperitoneal lymph nodes',
+    'IIIB':      'macroscopic peritoneal metastasis beyond pelvis ≤2 cm ± retroperitoneal lymph nodes',
+    'IIIC':      'macroscopic peritoneal metastasis beyond pelvis >2 cm ± retroperitoneal lymph nodes (includes liver/splenic capsule)',
+    'IVA':       'pleural effusion with positive cytology',
+    'IVB':       'parenchymal liver or splenic metastasis; extra-abdominal metastasis (including inguinal lymph nodes outside the abdominal cavity)',
+  };
+  return map[stage?.toUpperCase()] || map[stage] || '';
+}
+
 function pNExplanation(pn) {
   const map = {
     'pN0':     'no regional lymph node metastasis',
@@ -267,7 +287,8 @@ function renderCapSynoptic(caseData) {
     add.push(`pM Category: ${pmLabel[pm] || pm}`);
   }
   if (stg.figoStage) {
-    add.push(`FIGO Stage (2021): ${stg.figoStage}`);
+    const fexp = figoExplanation(stg.figoStage);
+    add.push(`FIGO Stage (2021): ${stg.figoStage}${fexp ? ' — ' + fexp : ''}`);
   }
   add.push('');
 
