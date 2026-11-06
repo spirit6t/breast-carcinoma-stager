@@ -61,14 +61,31 @@ function buildFinalDiagnosis(caseData) {
   const ss = caseData.cap.specialStudies;
   const lines = [];
 
+  const uf = caseData.cap.uterineFindings;
+  // Uterine findings belong under whichever specimen names the uterus/hysterectomy.
+  // Fall back to the primary specimen only if no specimen mentions the uterus.
+  const hasUterusSpec = specimens.some(s => /uterus|hysterectomy/i.test(s.designation));
+
+  function renderUterineFindings() {
+    if (!uf) return;
+    lines.push(`      -     CERVIX: ${up(uf.cervix)}`);
+    lines.push(`      -     ENDOMETRIUM: ${up(uf.endometrium)}`);
+    lines.push(`      -     MYOMETRIUM: ${up(uf.myometrium)}`);
+    if (uf.fallopianTube) lines.push(`      -     FALLOPIAN TUBE: ${up(uf.fallopianTube)}`);
+    lines.push(`      -     SEROSA: ${up(uf.serosa)}`);
+  }
+
   let primaryRendered = false;
 
   for (const spec of specimens) {
     lines.push(`${spec.letter}. ${up(spec.designation)}`);
+    const isUterusSpec = /uterus|hysterectomy/i.test(spec.designation);
 
     if (spec.diagnosis) {
       // Agent supplied a brief dx for this specimen — render it as-is
       lines.push(`      -     ${up(spec.diagnosis)}`);
+      // If this is the uterus specimen, append uterine findings here
+      if (isUterusSpec) renderUterineFindings();
     } else if (!primaryRendered) {
       // First specimen without an explicit diagnosis = primary — full workup
       primaryRendered = true;
@@ -90,14 +107,9 @@ function buildFinalDiagnosis(caseData) {
         lines.push(`      -     FIGO STAGE ${up(stg.figoStage)}`);
       }
 
-      const uf = caseData.cap.uterineFindings;
-      if (uf) {
-        lines.push(`      -     CERVIX: ${up(uf.cervix)}`);
-        lines.push(`      -     ENDOMETRIUM: ${up(uf.endometrium)}`);
-        lines.push(`      -     MYOMETRIUM: ${up(uf.myometrium)}`);
-        if (uf.fallopianTube) lines.push(`      -     FALLOPIAN TUBE: ${up(uf.fallopianTube)}`);
-        lines.push(`      -     SEROSA: ${up(uf.serosa)}`);
-      }
+      // Uterine findings: render here only if this specimen names the uterus,
+      // or if no specimen in the list names the uterus (fallback)
+      if (isUterusSpec || !hasUterusSpec) renderUterineFindings();
 
       lines.push('      -     SEE CASE SUMMARY FOR TUMOR CHARACTERISTICS');
 
@@ -111,6 +123,7 @@ function buildFinalDiagnosis(caseData) {
       // Additional specimen without explicit diagnosis — auto-generate brief involvement line
       const typeStr = up(t.histologicType || 'CARCINOMA');
       lines.push(`      -     INVOLVED BY ${typeStr}`);
+      if (isUterusSpec) renderUterineFindings();
     }
     lines.push('');
   }
