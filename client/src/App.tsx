@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AnyCase, CaseData, PathologyCaseData, Settings } from './lib/types';
-import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, createEmptyProstateCase, createEmptyLungCase, createEmptyPlacentaCase, createEmptyKidneyCase, createEmptyColonCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
+import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, createEmptyProstateCase, createEmptyLungCase, createEmptyPlacentaCase, createEmptyKidneyCase, createEmptyColonCase, createEmptyOvaryCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
 import { autosaveCase, loadAutosavedCase, loadSettings, saveSettings } from './lib/storage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AgentPane } from './components/AgentPane';
 import { ReportPreview } from './components/ReportPreview';
 
-type OrganType = 'breast' | 'endometrium' | 'pathology' | 'prostate' | 'lung' | 'placenta' | 'kidney' | 'colon';
+type OrganType = 'breast' | 'endometrium' | 'pathology' | 'prostate' | 'lung' | 'placenta' | 'kidney' | 'colon' | 'ovary';
 
 function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
   return (
@@ -53,6 +53,11 @@ function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
           <div className="organ-card-title">Colorectal Carcinoma</div>
           <div className="organ-card-desc">Colectomy / rectal resection — AJCC 8th, pTNM auto-staging, MMR IHC, tumor budding, full CAP synoptic, CPT billing</div>
         </div>
+        <div className="organ-card" onClick={() => onSelect('ovary')}>
+          <div className="organ-card-icon">🔬</div>
+          <div className="organ-card-title">Ovary / Fallopian Tube / Peritoneum</div>
+          <div className="organ-card-desc">Oophorectomy / BSO / debulking — AJCC 8th + FIGO 2021 staging, p53 IHC, CRS, full CAP synoptic v1.5.0.0, CPT billing</div>
+        </div>
       </div>
     </div>
   );
@@ -69,7 +74,7 @@ export default function App() {
   // Auto-compute breast staging only
   useEffect(() => {
     const org = (caseState as any)?.organ;
-    if (!caseState || org === 'endometrium' || org === 'pathology' || org === 'prostate' || org === 'lung' || org === 'placenta' || org === 'kidney' || org === 'colon') return;
+    if (!caseState || org === 'endometrium' || org === 'pathology' || org === 'prostate' || org === 'lung' || org === 'placenta' || org === 'kidney' || org === 'colon' || org === 'ovary') return;
     const bc = caseState as CaseData;
     const computed =
       bc.mode === 'excision-invasive'
@@ -124,6 +129,8 @@ export default function App() {
       ? createEmptyKidneyCase()
       : organ === 'colon'
       ? createEmptyColonCase()
+      : organ === 'ovary'
+      ? createEmptyOvaryCase()
       : createEmptyCase('excision-invasive');
     setCaseState(c);
     setSelectingOrgan(false);
@@ -168,6 +175,8 @@ export default function App() {
     ? 'Kidney / Renal Cell Carcinoma'
     : organ === 'colon'
     ? 'Colorectal Carcinoma'
+    : organ === 'ovary'
+    ? 'Ovary / Fallopian Tube / Peritoneum'
     : 'Breast Carcinoma';
 
   // Show organ selector if no case exists or user clicked New Case

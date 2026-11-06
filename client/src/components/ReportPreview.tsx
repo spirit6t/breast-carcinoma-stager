@@ -91,9 +91,10 @@ export function ReportPreview({ caseState, update }: Props) {
   const isPlacenta = (caseState as any).organ === 'placenta';
   const isKidney = (caseState as any).organ === 'kidney';
   const isColon  = (caseState as any).organ === 'colon';
+  const isOvary  = (caseState as any).organ === 'ovary';
 
   const saveDraft = () => {
-    const prefix = isColon ? 'colon' : isKidney ? 'kidney' : isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : isPlacenta ? 'placenta' : 'breast';
+    const prefix = isOvary ? 'ovary' : isColon ? 'colon' : isKidney ? 'kidney' : isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : isPlacenta ? 'placenta' : 'breast';
     downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
@@ -110,7 +111,7 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const c = caseState as any;
-  const bc = (isEndo || isPathology || isProstate || isLung || isPlacenta || isKidney || isColon) ? null : (caseState as CaseData);
+  const bc = (isEndo || isPathology || isProstate || isLung || isPlacenta || isKidney || isColon || isOvary) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens?.length
@@ -181,7 +182,7 @@ export function ReportPreview({ caseState, update }: Props) {
     return parts.length ? parts.join(' · ') : null;
   })();
 
-  const hasData = c.specimens?.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate || isLung || isKidney || isColon;
+  const hasData = c.specimens?.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate || isLung || isKidney || isColon || isOvary;
   const target = signoutTarget(c.receivedDate);
 
   return (
@@ -320,6 +321,35 @@ export function ReportPreview({ caseState, update }: Props) {
                 { label: 'MMR IHC',        value: v(c.cap?.specialStudies?.mmrStatus) },
                 { label: 'MSI',            value: v(c.cap?.specialStudies?.msiStatus) },
                 { label: 'KRAS/NRAS/BRAF', value: v(c.cap?.specialStudies?.molecularStatus) },
+              ]} />
+            </>
+          ) : isOvary ? (
+            <>
+              <Section title="Procedure" rows={[
+                { label: 'Procedure', value: v(c.cap?.specimen?.procedure) },
+                { label: 'Integrity', value: v(c.cap?.specimen?.specimenIntegrity) },
+              ]} />
+              <Section title="Tumor" rows={[
+                { label: 'Site',             value: v(c.cap?.tumor?.site) },
+                { label: 'Histologic type',  value: v(c.cap?.tumor?.histologicType) },
+                { label: 'Grade',            value: v(c.cap?.tumor?.histologicGrade) },
+                { label: 'Size',             value: c.cap?.tumor?.sizeCm != null ? `${c.cap.tumor.sizeCm} cm` : null },
+                { label: 'Surface involve.', value: v(c.cap?.tumor?.ovarianSurfaceInvolvement) },
+                { label: 'Extrapelvic',      value: v(c.cap?.tumor?.largestExtrapelvicFocus) },
+                { label: 'Peritoneal cytol.',value: v(c.cap?.tumor?.peritonealCytology) },
+                { label: 'CRS',              value: v(c.cap?.tumor?.crs) },
+              ]} />
+              <Section title="Stage" rows={[
+                { label: 'pT',         value: v(c.cap?.stage?.ptCategory) },
+                { label: 'pN',         value: v(c.cap?.stage?.pnCategory) },
+                { label: 'pM',         value: v(c.cap?.stage?.pmCategory) },
+                { label: 'FIGO 2021',  value: v(c.cap?.stage?.figoStage) },
+              ]} />
+              <Section title="Nodes" rows={[
+                { label: 'Positive/examined', value: (c.cap?.nodes?.nodesPositive != null && c.cap?.nodes?.nodesExamined != null) ? `${c.cap.nodes.nodesPositive}/${c.cap.nodes.nodesExamined}` : null },
+              ]} />
+              <Section title="Special Studies" rows={[
+                { label: 'p53 IHC', value: v(c.cap?.specialStudies?.p53Pending ? 'Pending' : c.cap?.specialStudies?.p53Status) },
               ]} />
             </>
           ) : isPlacenta ? (

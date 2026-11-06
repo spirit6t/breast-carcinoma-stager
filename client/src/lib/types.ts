@@ -550,7 +550,67 @@ export interface ColonCaseData {
   updatedAt: string;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData | KidneyCaseData | ColonCaseData;
+export interface OvaryCaseData {
+  organ: 'ovary';
+  createdAt: string;
+  updatedAt: string;
+  receivedDate?: string | null;
+  reportText?: string;
+  specimens: Array<{
+    letter: string;
+    designation: string;
+    diagnosis?: string;
+    cpt?: string | null;
+    cptAddons?: string[];
+  }>;
+  cap: {
+    specimen: {
+      procedure: string | null;
+      specimenIntegrity: string | null;
+    };
+    tumor: {
+      site: string | null;
+      sizeCm: number | null;
+      histologicType: string | null;
+      histologicGrade: string | null;
+      specimenIntegrity?: string | null;
+      ovarianSurfaceInvolvement: string | null;
+      ftSurfaceInvolvement: string | null;
+      otherOrganInvolvement: string[];
+      largestExtrapelvicFocus: string | null;
+      peritonealCytology: string | null;
+      crs: string | null;
+      implants: string | null;
+      tumorComment: string | null;
+    };
+    nodes: {
+      status: string | null;
+      nodesPositive: number | null;
+      nodesExamined: number | null;
+      nodesGt10mm: number | null;
+      nodesLe10mm: number | null;
+      nodesItc: number | null;
+      nodeComment: string | null;
+    };
+    stage: {
+      ptCategory: string | null;
+      pnCategory: string | null;
+      pmCategory: string | null;
+      figoStage: string | null;
+      yPrefix: boolean;
+      rPrefix: boolean;
+    };
+    specialStudies: {
+      p53Status: string | null;
+      p53Pending: boolean;
+      additionalPending: string[];
+    };
+    additionalFindings: string[];
+  };
+  caseComment: string | null;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData | KidneyCaseData | ColonCaseData | OvaryCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';

@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, KidneyCaseData, ColonCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, KidneyCaseData, ColonCaseData, OvaryCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -415,5 +415,31 @@ export function createEmptyPlacentaCase(): PlacentaCaseData {
     cpt: '88307',
     reportText: '',
     updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyOvaryCase(): OvaryCaseData {
+  return {
+    organ: 'ovary',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    specimens: [],
+    cap: {
+      specimen: { procedure: null, specimenIntegrity: null },
+      tumor: {
+        site: null, sizeCm: null, histologicType: null, histologicGrade: null,
+        ovarianSurfaceInvolvement: null, ftSurfaceInvolvement: null,
+        otherOrganInvolvement: [], largestExtrapelvicFocus: null,
+        peritonealCytology: null, crs: null, implants: null, tumorComment: null,
+      },
+      nodes: {
+        status: null, nodesPositive: null, nodesExamined: null,
+        nodesGt10mm: null, nodesLe10mm: null, nodesItc: null, nodeComment: null,
+      },
+      stage: { ptCategory: null, pnCategory: null, pmCategory: null, figoStage: null, yPrefix: false, rPrefix: false },
+      specialStudies: { p53Status: null, p53Pending: false, additionalPending: [] },
+      additionalFindings: [],
+    },
+    caseComment: null,
   };
 }

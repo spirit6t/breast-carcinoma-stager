@@ -15,6 +15,7 @@ import { LUNG_TOOL_SCHEMAS, LUNG_SYSTEM_PROMPT, executeLungTool } from './lung/a
 import { PLACENTA_TOOL_SCHEMAS, PLACENTA_SYSTEM_PROMPT, executePlacentaTool } from './placenta/agentTools.js';
 import { KIDNEY_TOOL_SCHEMAS, KIDNEY_SYSTEM_PROMPT, executeKidneyTool } from './kidney/agentTools.js';
 import { COLON_TOOL_SCHEMAS, COLON_SYSTEM_PROMPT, executeColonTool } from './colon/agentTools.js';
+import { OVARY_TOOL_SCHEMAS, OVARY_SYSTEM_PROMPT, executeOvaryTool } from './ovary/agentTools.js';
 import {
   runAnthropicTurn,
   buildAnthropicToolResultMessage,
@@ -40,7 +41,9 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
   const isPlacenta  = organ === 'placenta';
   const isKidney    = organ === 'kidney';
   const isColon     = organ === 'colon';
-  const tools     = isColon     ? COLON_TOOL_SCHEMAS
+  const isOvary     = organ === 'ovary';
+  const tools     = isOvary     ? OVARY_TOOL_SCHEMAS
+                  : isColon     ? COLON_TOOL_SCHEMAS
                   : isKidney    ? KIDNEY_TOOL_SCHEMAS
                   : isPlacenta  ? PLACENTA_TOOL_SCHEMAS
                   : isLung      ? LUNG_TOOL_SCHEMAS
@@ -48,7 +51,8 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
                   : isPathology ? PATHOLOGY_TOOL_SCHEMAS
                   : isEndo      ? ENDO_TOOL_SCHEMAS
                   : TOOL_SCHEMAS;
-  const sysPrompt = isColon     ? COLON_SYSTEM_PROMPT
+  const sysPrompt = isOvary     ? OVARY_SYSTEM_PROMPT
+                  : isColon     ? COLON_SYSTEM_PROMPT
                   : isKidney    ? KIDNEY_SYSTEM_PROMPT
                   : isPlacenta  ? PLACENTA_SYSTEM_PROMPT
                   : isLung      ? LUNG_SYSTEM_PROMPT
@@ -56,7 +60,8 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
                   : isPathology ? PATHOLOGY_SYSTEM_PROMPT
                   : isEndo      ? ENDO_SYSTEM_PROMPT
                   : SYSTEM_PROMPT;
-  const execTool  = isColon     ? executeColonTool
+  const execTool  = isOvary     ? executeOvaryTool
+                  : isColon     ? executeColonTool
                   : isKidney    ? executeKidneyTool
                   : isPlacenta  ? executePlacentaTool
                   : isLung      ? executeLungTool
