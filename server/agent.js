@@ -16,6 +16,7 @@ import { PLACENTA_TOOL_SCHEMAS, PLACENTA_SYSTEM_PROMPT, executePlacentaTool } fr
 import { KIDNEY_TOOL_SCHEMAS, KIDNEY_SYSTEM_PROMPT, executeKidneyTool } from './kidney/agentTools.js';
 import { COLON_TOOL_SCHEMAS, COLON_SYSTEM_PROMPT, executeColonTool } from './colon/agentTools.js';
 import { OVARY_TOOL_SCHEMAS, OVARY_SYSTEM_PROMPT, executeOvaryTool } from './ovary/agentTools.js';
+import { PROSTATE_RP_TOOL_SCHEMAS, PROSTATE_RP_SYSTEM_PROMPT, executeProstateRPTool } from './prostate-resection/agentTools.js';
 import {
   runAnthropicTurn,
   buildAnthropicToolResultMessage,
@@ -42,7 +43,9 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
   const isKidney    = organ === 'kidney';
   const isColon     = organ === 'colon';
   const isOvary     = organ === 'ovary';
-  const tools     = isOvary     ? OVARY_TOOL_SCHEMAS
+  const isProstateRP = organ === 'prostate-resection';
+  const tools     = isProstateRP  ? PROSTATE_RP_TOOL_SCHEMAS
+                  : isOvary     ? OVARY_TOOL_SCHEMAS
                   : isColon     ? COLON_TOOL_SCHEMAS
                   : isKidney    ? KIDNEY_TOOL_SCHEMAS
                   : isPlacenta  ? PLACENTA_TOOL_SCHEMAS
@@ -51,7 +54,8 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
                   : isPathology ? PATHOLOGY_TOOL_SCHEMAS
                   : isEndo      ? ENDO_TOOL_SCHEMAS
                   : TOOL_SCHEMAS;
-  const sysPrompt = isOvary     ? OVARY_SYSTEM_PROMPT
+  const sysPrompt = isProstateRP  ? PROSTATE_RP_SYSTEM_PROMPT
+                  : isOvary     ? OVARY_SYSTEM_PROMPT
                   : isColon     ? COLON_SYSTEM_PROMPT
                   : isKidney    ? KIDNEY_SYSTEM_PROMPT
                   : isPlacenta  ? PLACENTA_SYSTEM_PROMPT
@@ -60,7 +64,8 @@ export async function runAgent({ provider, apiKey, model, caseState, userMessage
                   : isPathology ? PATHOLOGY_SYSTEM_PROMPT
                   : isEndo      ? ENDO_SYSTEM_PROMPT
                   : SYSTEM_PROMPT;
-  const execTool  = isOvary     ? executeOvaryTool
+  const execTool  = isProstateRP  ? executeProstateRPTool
+                  : isOvary     ? executeOvaryTool
                   : isColon     ? executeColonTool
                   : isKidney    ? executeKidneyTool
                   : isPlacenta  ? executePlacentaTool

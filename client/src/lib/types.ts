@@ -629,7 +629,82 @@ export interface OvaryCaseData {
   caseComment: string | null;
 }
 
-export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData | KidneyCaseData | ColonCaseData | OvaryCaseData;
+export interface ProstateResectionCaseData {
+  organ: 'prostate-resection';
+  createdAt: string;
+  updatedAt: string;
+  receivedDate?: string | null;
+  reportText?: string;
+  specimens: Array<{
+    letter: string;
+    designation: string;
+    cpt: string | null;
+    cptAddons: string[];
+    isPrimary: boolean;
+    diagnosisLines: string | null;
+  }>;
+  cap: {
+    specimen: {
+      procedure: string | null;
+      prostateWeightG: number | null;
+      prostateSizeCm: string | null;
+    };
+    tumor: {
+      histologicTypes: string[];
+      gleasonPrimary: number | null;
+      gleasonSecondary: number | null;
+      gleasonScore: number | null;
+      gradeGroup: number | null;
+      gradeGroupLabel: string | null;
+      minorTertiaryPattern5: string | null;
+      pattern4Pct: string | null;
+      idc: string | null;
+      idcIncorporatedIntoGrade: string | null;
+      cribriformGlands: string | null;
+      treatmentEffect: string[];
+      epe: string | null;
+      epeLocations: string[];
+      bladderNeckInvasion: string | null;
+      seminalVesicleInvasion: string | null;
+      lvi: string | null;
+      perineumralInvasion: string | null;
+    };
+    quantitation: {
+      tumorPctInvolved: string | null;
+      dominantNoduleMm: number | null;
+      dominantNoduleLocation: string | null;
+    };
+    margins: {
+      status: string | null;
+      marginsInvolved: string[];
+      marginLinearMm: string | null;
+      marginFocality: string | null;
+      gleassonPatternAtMargin: number[];
+      marginInAreaOfEpe: string | null;
+    };
+    nodes: {
+      status: string | null;
+      nodesPositive: number | null;
+      nodesExamined: number | null;
+      nodalSitesWithTumor: string[];
+      extranodalExtension: string | null;
+      nodeComment: string | null;
+    };
+    stage: {
+      ptCategory: string | null;
+      pnCategory: string | null;
+      pmCategory: string | null;
+      distantSitesStatus: string | null;
+      distantSites: string[];
+      yPrefix: boolean;
+      rPrefix: boolean;
+    };
+    additionalFindings: string[];
+  };
+  caseComment: string | null;
+}
+
+export type AnyCase = CaseData | EndometrialCaseData | PathologyCaseData | ProstateCaseData | LungCaseData | PlacentaCaseData | KidneyCaseData | ColonCaseData | OvaryCaseData | ProstateResectionCaseData;
 
 export interface Settings {
   provider: 'anthropic' | 'openai';

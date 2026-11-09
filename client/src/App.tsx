@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AnyCase, CaseData, PathologyCaseData, Settings } from './lib/types';
-import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, createEmptyProstateCase, createEmptyLungCase, createEmptyPlacentaCase, createEmptyKidneyCase, createEmptyColonCase, createEmptyOvaryCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
+import { createEmptyCase, createEmptyEndometrialCase, createEmptyPathologyCase, createEmptyProstateCase, createEmptyLungCase, createEmptyPlacentaCase, createEmptyKidneyCase, createEmptyColonCase, createEmptyOvaryCase, createEmptyProstateResectionCase, computeDCISStage, computeInvasiveStage } from './lib/caseModel';
 import { autosaveCase, loadAutosavedCase, loadSettings, saveSettings } from './lib/storage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AgentPane } from './components/AgentPane';
 import { ReportPreview } from './components/ReportPreview';
 
-type OrganType = 'breast' | 'endometrium' | 'pathology' | 'prostate' | 'lung' | 'placenta' | 'kidney' | 'colon' | 'ovary';
+type OrganType = 'breast' | 'endometrium' | 'pathology' | 'prostate' | 'prostate-resection' | 'lung' | 'placenta' | 'kidney' | 'colon' | 'ovary';
 
 function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
   return (
@@ -32,6 +32,11 @@ function OrganSelector({ onSelect }: { onSelect: (organ: OrganType) => void }) {
           <div className="organ-card-icon">🔵</div>
           <div className="organ-card-title">Prostate Biopsy</div>
           <div className="organ-card-desc">Needle core biopsy — Gleason grading, grade groups, IDC, cribriform, PIN4 IHC — CAP protocol</div>
+        </div>
+        <div className="organ-card" onClick={() => onSelect('prostate-resection')}>
+          <div className="organ-card-icon">🟣</div>
+          <div className="organ-card-title">Prostate Resection</div>
+          <div className="organ-card-desc">Radical prostatectomy — Gleason grading, EPE, SVI, margins, pTNM AJCC 8th, full CAP synoptic v4.3.0.0</div>
         </div>
         <div className="organ-card" onClick={() => onSelect('lung')}>
           <div className="organ-card-icon">🫁</div>
@@ -74,7 +79,7 @@ export default function App() {
   // Auto-compute breast staging only
   useEffect(() => {
     const org = (caseState as any)?.organ;
-    if (!caseState || org === 'endometrium' || org === 'pathology' || org === 'prostate' || org === 'lung' || org === 'placenta' || org === 'kidney' || org === 'colon' || org === 'ovary') return;
+    if (!caseState || org === 'endometrium' || org === 'pathology' || org === 'prostate' || org === 'prostate-resection' || org === 'lung' || org === 'placenta' || org === 'kidney' || org === 'colon' || org === 'ovary') return;
     const bc = caseState as CaseData;
     const computed =
       bc.mode === 'excision-invasive'
@@ -131,6 +136,8 @@ export default function App() {
       ? createEmptyColonCase()
       : organ === 'ovary'
       ? createEmptyOvaryCase()
+      : organ === 'prostate-resection'
+      ? createEmptyProstateResectionCase()
       : createEmptyCase('excision-invasive');
     setCaseState(c);
     setSelectingOrgan(false);
@@ -167,6 +174,8 @@ export default function App() {
     ? 'Surgical Pathology / Cytology'
     : organ === 'prostate'
     ? 'Prostate Biopsy'
+    : organ === 'prostate-resection'
+    ? 'Prostate Resection'
     : organ === 'lung'
     ? 'Lung Carcinoma'
     : organ === 'placenta'

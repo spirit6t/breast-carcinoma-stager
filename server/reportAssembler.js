@@ -10,6 +10,7 @@ import { assemblePlacentaReport } from './placenta/reportAssembler.js';
 import { assembleKidneyReport } from './kidney/reportAssembler.js';
 import { assembleColonReport } from './colon/reportAssembler.js';
 import { assembleOvaryReport } from './ovary/reportAssembler.js';
+import { assembleProstateResectionReport } from './prostate-resection/reportAssembler.js';
 
 function renderClinicalInfo(caseData) {
   const h = caseData.priorHistory || {};
@@ -162,6 +163,7 @@ export function assembleReport(caseData) {
   if (caseData?.organ === 'placenta')    return assemblePlacentaReport(caseData);
   if (caseData?.organ === 'kidney')      return assembleKidneyReport(caseData);
   if (caseData?.organ === 'colon')       return assembleColonReport(caseData);
-  if (caseData?.organ === 'ovary')       return assembleOvaryReport(caseData);
+  if (caseData?.organ === 'ovary')             return assembleOvaryReport(caseData);
+  if (caseData?.organ === 'prostate-resection') return assembleProstateResectionReport(caseData);
   return assembleBreastReport(caseData);
 }

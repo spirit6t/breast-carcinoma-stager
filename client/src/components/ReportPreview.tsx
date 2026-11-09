@@ -90,18 +90,19 @@ export function ReportPreview({ caseState, update }: Props) {
   const isLung = (caseState as any).organ === 'lung';
   const isPlacenta = (caseState as any).organ === 'placenta';
   const isKidney = (caseState as any).organ === 'kidney';
-  const isColon  = (caseState as any).organ === 'colon';
-  const isOvary  = (caseState as any).organ === 'ovary';
+  const isColon        = (caseState as any).organ === 'colon';
+  const isOvary        = (caseState as any).organ === 'ovary';
+  const isProstateRP   = (caseState as any).organ === 'prostate-resection';
 
   const saveDraft = () => {
-    const prefix = isOvary ? 'ovary' : isColon ? 'colon' : isKidney ? 'kidney' : isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : isPlacenta ? 'placenta' : 'breast';
+    const prefix = isProstateRP ? 'prostate-rp' : isOvary ? 'ovary' : isColon ? 'colon' : isKidney ? 'kidney' : isEndo ? 'endo' : isPathology ? 'pathology' : isProstate ? 'prostate' : isLung ? 'lung' : isPlacenta ? 'placenta' : 'breast';
     downloadJson(`${prefix}_case_${caseState.receivedDate || 'draft'}.json`, { ...caseState, reportText });
   };
 
   const loadDraft = async () => {
     try {
       const data = (await pickJsonFile()) as AnyCase;
-      if ((data as any)?.cap || ['pathology','prostate','lung','placenta','kidney'].includes((data as any)?.organ)) {
+      if ((data as any)?.cap || ['pathology','prostate','prostate-resection','lung','placenta','kidney'].includes((data as any)?.organ)) {
         update(() => data);
         setReportText(data.reportText || '');
       }
@@ -111,7 +112,7 @@ export function ReportPreview({ caseState, update }: Props) {
   };
 
   const c = caseState as any;
-  const bc = (isEndo || isPathology || isProstate || isLung || isPlacenta || isKidney || isColon || isOvary) ? null : (caseState as CaseData);
+  const bc = (isEndo || isPathology || isProstate || isProstateRP || isLung || isPlacenta || isKidney || isColon || isOvary) ? null : (caseState as CaseData);
   const ec = isEndo ? (caseState as EndometrialCaseData) : null;
 
   const specimenList = c.specimens?.length
@@ -182,7 +183,7 @@ export function ReportPreview({ caseState, update }: Props) {
     return parts.length ? parts.join(' · ') : null;
   })();
 
-  const hasData = c.specimens?.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate || isLung || isKidney || isColon || isOvary;
+  const hasData = c.specimens?.length > 0 || c.cap?.specimen?.procedure || c.cap?.tumor?.histologicType || isProstate || isProstateRP || isLung || isKidney || isColon || isOvary;
   const target = signoutTarget(c.receivedDate);
 
   return (
@@ -350,6 +351,39 @@ export function ReportPreview({ caseState, update }: Props) {
               ]} />
               <Section title="Special Studies" rows={[
                 { label: 'p53 IHC', value: v(c.cap?.specialStudies?.p53Pending ? 'Pending' : c.cap?.specialStudies?.p53Status) },
+              ]} />
+            </>
+          ) : isProstateRP ? (
+            <>
+              <Section title="Specimen" rows={[
+                { label: 'Procedure',  value: v(c.cap?.specimen?.procedure) },
+                { label: 'Weight',     value: c.cap?.specimen?.prostateWeightG != null ? `${c.cap.specimen.prostateWeightG} g` : null },
+                { label: 'Size',       value: v(c.cap?.specimen?.prostateSizeCm) },
+              ]} />
+              <Section title="Tumor" rows={[
+                { label: 'Grade group',   value: v(c.cap?.tumor?.gradeGroupLabel) },
+                { label: 'Pattern 4 %',   value: v(c.cap?.tumor?.pattern4Pct) },
+                { label: 'IDC',           value: v(c.cap?.tumor?.idc) },
+                { label: 'Cribriform',    value: v(c.cap?.tumor?.cribriformGlands) },
+                { label: 'EPE',           value: v(c.cap?.tumor?.epe) },
+                { label: 'SVI',           value: v(c.cap?.tumor?.seminalVesicleInvasion) },
+                { label: 'BNI',           value: v(c.cap?.tumor?.bladderNeckInvasion) },
+                { label: 'LVI',           value: v(c.cap?.tumor?.lvi) },
+                { label: 'PNI',           value: v(c.cap?.tumor?.perineumralInvasion) },
+              ]} />
+              <Section title="Stage" rows={[
+                { label: 'pT',  value: v(c.cap?.stage?.ptCategory) },
+                { label: 'pN',  value: v(c.cap?.stage?.pnCategory) },
+                { label: 'pM',  value: v(c.cap?.stage?.pmCategory) },
+              ]} />
+              <Section title="Nodes" rows={[
+                { label: 'Status',            value: v(c.cap?.nodes?.status) },
+                { label: 'Positive/examined', value: (c.cap?.nodes?.nodesPositive != null && c.cap?.nodes?.nodesExamined != null) ? `${c.cap.nodes.nodesPositive}/${c.cap.nodes.nodesExamined}` : null },
+              ]} />
+              <Section title="Margins" rows={[
+                { label: 'Status',  value: v(c.cap?.margins?.status) },
+                { label: 'Sites',   value: v((c.cap?.margins?.marginsInvolved || []).join(', ')) },
+                { label: 'Length',  value: v(c.cap?.margins?.marginLinearMm) },
               ]} />
             </>
           ) : isPlacenta ? (

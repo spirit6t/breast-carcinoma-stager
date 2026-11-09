@@ -1,4 +1,4 @@
-import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, KidneyCaseData, ColonCaseData, OvaryCaseData, Mode } from './types';
+import type { CaseData, EndometrialCaseData, PathologyCaseData, ProstateCaseData, LungCaseData, PlacentaCaseData, KidneyCaseData, ColonCaseData, OvaryCaseData, ProstateResectionCaseData, Mode } from './types';
 
 export function computeDCISStage(
   cap: CaseData['cap']
@@ -415,6 +415,40 @@ export function createEmptyPlacentaCase(): PlacentaCaseData {
     cpt: '88307',
     reportText: '',
     updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createEmptyProstateResectionCase(): ProstateResectionCaseData {
+  return {
+    organ: 'prostate-resection',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    specimens: [],
+    cap: {
+      specimen: { procedure: 'Radical prostatectomy', prostateWeightG: null, prostateSizeCm: null },
+      tumor: {
+        histologicTypes: [], gleasonPrimary: null, gleasonSecondary: null, gleasonScore: null,
+        gradeGroup: null, gradeGroupLabel: null, minorTertiaryPattern5: null, pattern4Pct: null,
+        idc: null, idcIncorporatedIntoGrade: null, cribriformGlands: null, treatmentEffect: [],
+        epe: null, epeLocations: [], bladderNeckInvasion: null, seminalVesicleInvasion: null,
+        lvi: null, perineumralInvasion: null,
+      },
+      quantitation: { tumorPctInvolved: null, dominantNoduleMm: null, dominantNoduleLocation: null },
+      margins: {
+        status: null, marginsInvolved: [], marginLinearMm: null,
+        marginFocality: null, gleassonPatternAtMargin: [], marginInAreaOfEpe: null,
+      },
+      nodes: {
+        status: null, nodesPositive: null, nodesExamined: null,
+        nodalSitesWithTumor: [], extranodalExtension: null, nodeComment: null,
+      },
+      stage: {
+        ptCategory: null, pnCategory: null, pmCategory: null,
+        distantSitesStatus: null, distantSites: [], yPrefix: false, rPrefix: false,
+      },
+      additionalFindings: [],
+    },
+    caseComment: null,
   };
 }
 
