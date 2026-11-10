@@ -10,7 +10,7 @@ function isNeg(v) { return !v || /not identified|absent|negative|not applicable|
 
 // ── Final diagnosis helpers ───────────────────────────────────────────────────
 
-function buildPrimaryDxLines(c, hasLnSpecimens = false) {
+function buildPrimaryDxLines(c) {
   const t  = c.cap.tumor;
   const q  = c.cap.quantitation;
   const m  = c.cap.margins;
@@ -36,17 +36,10 @@ function buildPrimaryDxLines(c, hasLnSpecimens = false) {
     lines.push(dash(`PERCENTAGE OF PATTERN 4: ${up(t.pattern4Pct)}`));
   }
 
-  // 4. Intraductal carcinoma — only if present
+  // 4. Intraductal carcinoma — only if present; details in CAP synoptic
   const idcVal = t.idc || 'Not identified';
   if (!isNeg(idcVal)) {
     lines.push(dash(`INTRADUCTAL CARCINOMA: ${up(idcVal)}`));
-    lines.push(dash(`IDC INCORPORATED INTO GRADE: ${up(t.idcIncorporatedIntoGrade || 'Cannot be determined')}`));
-  }
-
-  // 5. Cribriform glands (GG2–GG4 only) — only if present
-  const gg = t.gradeGroup;
-  if (gg && gg >= 2 && gg <= 4 && t.cribriformGlands && !isNeg(t.cribriformGlands)) {
-    lines.push(dash(`CRIBRIFORM GLANDS: ${up(t.cribriformGlands)}`));
   }
 
   // 6. Tumor quantitation
@@ -102,16 +95,6 @@ function buildPrimaryDxLines(c, hasLnSpecimens = false) {
     lines.push(dash('ALL MARGINS NEGATIVE FOR INVASIVE CARCINOMA'));
   }
 
-  // 13. Node summary — omit if dedicated LN specimen lines already list nodes
-  if (!hasLnSpecimens && n.status && !/no lymph node/i.test(n.status)) {
-    if (/metastatic/i.test(n.status) || (n.nodesPositive != null && n.nodesPositive > 0)) {
-      const pos = n.nodesPositive ?? '?';
-      const tot = n.nodesExamined ?? '?';
-      lines.push(dash(`LYMPH NODES: METASTATIC ADENOCARCINOMA IN ${pos} OF ${tot} LYMPH NODES (${pos}/${tot})`));
-    } else if (n.nodesExamined != null) {
-      lines.push(dash(`LYMPH NODES: ALL ${n.nodesExamined} LYMPH NODES NEGATIVE (0/${n.nodesExamined})`));
-    }
-  }
 
   // 14. Pathologic stage
   if (st.ptCategory) {
@@ -361,12 +344,10 @@ export function assembleProstateResectionReport(caseData) {
   parts.push('FINAL DIAGNOSIS:');
   parts.push('');
 
-  const hasLnSpecimens = specimens.some(s => !s.isPrimary && s.diagnosisLines);
-
   for (const spec of specimens) {
     const header = `${spec.letter}. ${up(spec.designation || '')}:`;
     if (spec.isPrimary) {
-      parts.push(`${header}\n${buildPrimaryDxLines(caseData, hasLnSpecimens)}`);
+      parts.push(`${header}\n${buildPrimaryDxLines(caseData)}`);
     } else if (spec.diagnosisLines) {
       parts.push(`${header}\n${dash(up(norm(spec.diagnosisLines)))}`);
     } else {
