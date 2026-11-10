@@ -137,9 +137,9 @@ function buildCapSynoptic(c) {
 
   // SPECIMEN
   syn('SPECIMEN');
-  syn(`   Procedure: ${up(sp.procedure || 'Radical prostatectomy')}`);
-  if (sp.prostateWeightG != null) syn(`   Prostate Weight: ${sp.prostateWeightG} G`);
-  if (sp.prostateSizeCm)          syn(`   Prostate Size: ${up(sp.prostateSizeCm)}`);
+  syn(`   Procedure: ${sp.procedure || 'Radical prostatectomy'}`);
+  if (sp.prostateWeightG != null) syn(`   Prostate Weight: ${sp.prostateWeightG} g`);
+  if (sp.prostateSizeCm)          syn(`   Prostate Size: ${sp.prostateSizeCm}`);
   lines.push('');
 
   // TUMOR
@@ -147,55 +147,55 @@ function buildCapSynoptic(c) {
   const types = t.histologicTypes && t.histologicTypes.length
     ? t.histologicTypes
     : ['Acinar adenocarcinoma, conventional (usual) type'];
-  syn(`   Histologic Type: ${types.map(up).join('; ')}`);
+  syn(`   Histologic Type: ${types.join('; ')}`);
 
   if (t.gradeGroupLabel) {
-    syn(`   Histologic Grade: ${up(t.gradeGroupLabel)}`);
+    syn(`   Histologic Grade: ${t.gradeGroupLabel}`);
     if (t.pattern4Pct) {
-      sub(`Percentage of Pattern 4: ${up(t.pattern4Pct)}`);
+      sub(`Percentage of Pattern 4: ${t.pattern4Pct}`);
     }
-    sub(`Minor Tertiary Pattern 5: ${up(t.minorTertiaryPattern5 || 'Not applicable / not identified')}`);
+    sub(`Minor Tertiary Pattern 5: ${t.minorTertiaryPattern5 || 'Not applicable / not identified'}`);
 
     const idcVal = t.idc || 'Not identified';
-    sub(`Intraductal Carcinoma (IDC-P): ${up(idcVal)}`);
+    sub(`Intraductal Carcinoma (IDC-P): ${idcVal}`);
     if (/present/i.test(idcVal)) {
-      lines.push(`            IDC Incorporated into Grade: ${up(t.idcIncorporatedIntoGrade || 'Cannot be determined')}`);
+      lines.push(`            IDC Incorporated into Grade: ${t.idcIncorporatedIntoGrade || 'Cannot be determined'}`);
     }
 
     const gg = t.gradeGroup;
     if (gg && gg >= 2 && gg <= 4) {
-      sub(`Cribriform Glands: ${up(t.cribriformGlands || 'Not identified')}`);
+      sub(`Cribriform Glands: ${t.cribriformGlands || 'Not identified'}`);
     } else {
-      sub('Cribriform Glands: NOT APPLICABLE');
+      sub('Cribriform Glands: Not applicable');
     }
 
     const te = t.treatmentEffect && t.treatmentEffect.length
       ? t.treatmentEffect.join('; ')
       : 'No known prior treatment';
-    sub(`Treatment Effect: ${up(te)}`);
+    sub(`Treatment Effect: ${te}`);
   }
 
   // Extent — part of TUMOR section per CAP v4.3.0.0
   const epeVal = t.epe || 'Not identified';
-  syn(`   Extraprostatic Extension: ${up(epeVal)}`);
+  syn(`   Extraprostatic Extension: ${epeVal}`);
   if (/present/i.test(epeVal) && t.epeLocations && t.epeLocations.length) {
-    sub(`Location(s): ${t.epeLocations.map(up).join(', ')}`);
+    sub(`Location(s): ${t.epeLocations.join(', ')}`);
   }
-  syn(`   Urinary Bladder Neck Invasion: ${up(t.bladderNeckInvasion || 'Not identified')}`);
-  syn(`   Seminal Vesicle Invasion: ${up(t.seminalVesicleInvasion || 'Not identified')}`);
-  syn(`   Lymphatic and/or Vascular Invasion: ${up(t.lvi || 'Not identified')}`);
-  syn(`   Perineural Invasion: ${up(t.perineumralInvasion || 'Not identified')}`);
+  syn(`   Urinary Bladder Neck Invasion: ${t.bladderNeckInvasion || 'Not identified'}`);
+  syn(`   Seminal Vesicle Invasion: ${t.seminalVesicleInvasion || 'Not identified'}`);
+  syn(`   Lymphatic and/or Vascular Invasion: ${t.lvi || 'Not identified'}`);
+  syn(`   Perineural Invasion: ${t.perineumralInvasion || 'Not identified'}`);
   lines.push('');
 
   // TUMOR QUANTITATION
   syn('TUMOR QUANTITATION');
   if (q.tumorPctInvolved) {
-    syn(`   Estimated Percentage of Prostate Involved: ${up(q.tumorPctInvolved)}`);
+    syn(`   Estimated Percentage of Prostate Involved: ${q.tumorPctInvolved}`);
   }
   if (q.dominantNoduleMm != null) {
-    syn(`   Greatest Dimension of Dominant Nodule: ${q.dominantNoduleMm} MM`);
+    syn(`   Greatest Dimension of Dominant Nodule: ${q.dominantNoduleMm} mm`);
     if (q.dominantNoduleLocation) {
-      syn(`   Location of Dominant Nodule: ${up(q.dominantNoduleLocation)}`);
+      syn(`   Location of Dominant Nodule: ${q.dominantNoduleLocation}`);
     }
   }
   lines.push('');
@@ -203,22 +203,22 @@ function buildCapSynoptic(c) {
   // MARGINS
   syn('MARGINS');
   const marginStatus = m.status || 'All margins negative for invasive carcinoma';
-  syn(`   Margins: ${up(marginStatus)}`);
+  syn(`   Margins: ${marginStatus}`);
   if (/positive|present at margin/i.test(marginStatus)) {
     if (m.marginsInvolved && m.marginsInvolved.length) {
-      sub(`Margin(s) Involved: ${m.marginsInvolved.map(up).join(', ')}`);
+      sub(`Margin(s) Involved: ${m.marginsInvolved.join(', ')}`);
     }
     if (m.marginLinearMm) {
-      sub(`Linear Length: ${up(m.marginLinearMm)}`);
+      sub(`Linear Length: ${m.marginLinearMm}`);
     }
     if (m.marginFocality) {
-      sub(`Focality: ${up(m.marginFocality)}`);
+      sub(`Focality: ${m.marginFocality}`);
     }
     if (m.gleassonPatternAtMargin && m.gleassonPatternAtMargin.length) {
       sub(`Gleason Pattern at Margin: ${m.gleassonPatternAtMargin.join(', ')}`);
     }
     if (m.marginInAreaOfEpe) {
-      sub(`Margin in Area of EPE: ${up(m.marginInAreaOfEpe)}`);
+      sub(`Margin in Area of EPE: ${m.marginInAreaOfEpe}`);
     }
   }
   lines.push('');
@@ -226,14 +226,14 @@ function buildCapSynoptic(c) {
   // REGIONAL LYMPH NODES
   syn('REGIONAL LYMPH NODES');
   const nodeStatus = n.status || (n.nodesExamined != null ? 'No tumor seen' : 'No lymph nodes submitted');
-  syn(`   Lymph Nodes: ${up(nodeStatus)}`);
+  syn(`   Lymph Nodes: ${nodeStatus}`);
   if (n.nodesPositive != null && n.nodesPositive > 0) {
     sub(`Number of Nodes with Tumor: ${n.nodesPositive}`);
     if (n.nodalSitesWithTumor && n.nodalSitesWithTumor.length) {
-      sub(`Nodal Site(s) with Tumor: ${n.nodalSitesWithTumor.map(up).join(', ')}`);
+      sub(`Nodal Site(s) with Tumor: ${n.nodalSitesWithTumor.join(', ')}`);
     }
     if (n.extranodalExtension) {
-      sub(`Extranodal Extension: ${up(n.extranodalExtension)}`);
+      sub(`Extranodal Extension: ${n.extranodalExtension}`);
     }
   }
   if (n.nodesExamined != null) {
@@ -244,12 +244,12 @@ function buildCapSynoptic(c) {
   // DISTANT METASTASIS
   syn('DISTANT METASTASIS');
   if (st.distantSitesStatus && /present/i.test(st.distantSitesStatus)) {
-    syn('   Distant Metastasis: PRESENT');
+    syn('   Distant Metastasis: Present');
     if (st.distantSites && st.distantSites.length) {
-      sub(`Site(s): ${st.distantSites.map(up).join(', ')}`);
+      sub(`Site(s): ${st.distantSites.join(', ')}`);
     }
   } else {
-    syn('   Distant Metastasis: NOT APPLICABLE');
+    syn('   Distant Metastasis: Not applicable');
   }
   lines.push('');
 
@@ -257,7 +257,7 @@ function buildCapSynoptic(c) {
   syn('pTNM CLASSIFICATION (AJCC 8th Edition)');
 
   const pfx = st.yPrefix ? 'y' : st.rPrefix ? 'r' : null;
-  syn(`   Modified Classification: ${pfx ? up(pfx) : 'NOT APPLICABLE'}`);
+  syn(`   Modified Classification: ${pfx || 'Not applicable'}`);
 
   const ptDesc = {
     pT2:  'Organ confined',
@@ -295,7 +295,7 @@ function buildCapSynoptic(c) {
   syn('ADDITIONAL FINDINGS');
   const af = c.cap.additionalFindings || [];
   if (af.length) {
-    for (const f of af) syn(`   ${up(f)}`);
+    for (const f of af) syn(`   ${f}`);
   } else {
     syn('   No additional findings identified');
   }
