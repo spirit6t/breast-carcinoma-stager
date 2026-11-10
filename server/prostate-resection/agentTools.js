@@ -434,7 +434,7 @@ export async function executeProstateRPTool(name, args, caseData) {
     }
 
     case 'add_specimen': {
-      const isProstate = /(prostate|radical prostatectomy)/i.test(args.designation || '');
+      const isProstate = /^prostate|radical prostatectomy/i.test(args.designation || '');
       const spec = {
         letter:         args.letter,
         designation:    args.designation,
